@@ -44,7 +44,7 @@ Poté se přidá a otestuje odpovídající Nginx `location` blok.
 Z kořene lokálního projektu:
 
 ```sh
-rsync -av --delete src/public/ rada@srv1848295.hstgr.cloud:/srv/www/leanerp-skodadays-2026/public/
+rsync -av --delete --exclude='.gitignore' src/public/ rada@srv1848295.hstgr.cloud:/srv/www/leanerp-skodadays-2026/public/
 rsync -av --delete src/app/ rada@srv1848295.hstgr.cloud:/srv/www/leanerp-skodadays-2026/app/
 ```
 
@@ -62,6 +62,8 @@ curl --silent --show-error --output /dev/null --write-out '%{http_code}\n' \
 ```
 
 Pokud příkaz nevrátí `200`, nasazení není dokončené; nejdřív je potřeba ověřit Nginx konfiguraci, cílové soubory a logy.
+
+Skryté soubory v public rootu (například `.env` a `.gitignore`) musí Nginx vracet jako `404`.
 
 ## Neversionovaná data
 
