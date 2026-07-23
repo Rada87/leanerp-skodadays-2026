@@ -26,7 +26,19 @@ button { font: inherit; }
 .slide { background: var(--black); overflow: hidden; position: relative; }
 .slide[hidden] { display: none; }
 
-.slide--hero img { display: block; height: 100%; object-fit: cover; width: 100%; }
+.slide--hero { isolation: isolate; }
+.hero-background { background: linear-gradient(90deg, #000 0%, rgba(0, 0, 0, .92) 35%, rgba(0, 0, 0, .08) 69%), url("media/slide1-bg-01.png") center / cover no-repeat; inset: 0; position: absolute; z-index: -1; }
+.hero-content { left: clamp(3.8rem, 4.7vw, 6rem); max-width: min(75vw, 94rem); position: absolute; top: clamp(3.8rem, 9vw, 9rem); }
+.hero-eyebrow { color: var(--green); font-size: clamp(1.5rem, 2.1vw, 2.8rem); font-weight: 800; letter-spacing: -.035em; margin: 0 0 clamp(1rem, 2.1vw, 2rem); }
+.hero-content h1 { font-size: clamp(3rem, 5.4vw, 7rem); font-weight: 800; letter-spacing: -.06em; line-height: .98; margin: 0; }
+.hero-tags { display: flex; gap: clamp(1.4rem, 2.2vw, 3.2rem); margin-top: clamp(1.6rem, 2.8vw, 3.6rem); }
+.hero-tags span { background: var(--green); clip-path: polygon(0 0, 100% 0, 84% 100%, 16% 100%); color: #000; font-size: clamp(1rem, 1.55vw, 2rem); font-weight: 800; min-width: clamp(8rem, 11.2vw, 14rem); padding: .45em 1.2em .52em; text-align: center; }
+.hero-benefits { bottom: clamp(5rem, 9vw, 9rem); display: grid; gap: clamp(1.1rem, 2.5vw, 3.4rem); left: clamp(3.8rem, 4.7vw, 6rem); list-style: none; margin: 0; padding: 0; position: absolute; }
+.hero-benefits li { align-items: center; display: flex; gap: clamp(1rem, 1.8vw, 2.2rem); }
+.hero-benefits img { height: clamp(2.5rem, 4vw, 5rem); object-fit: contain; width: clamp(3.7rem, 5vw, 6rem); }
+.hero-benefits p { font-size: clamp(.95rem, 1.55vw, 2rem); letter-spacing: -.035em; line-height: 1.03; margin: 0; }
+.hero-brand { bottom: clamp(2.2rem, 5vw, 5.7rem); color: var(--green); font-size: clamp(1.6rem, 3vw, 3.8rem); left: clamp(3.8rem, 4.7vw, 6rem); letter-spacing: -.075em; position: absolute; }
+.hero-brand strong { font-weight: 900; }
 
 .controls {
   align-items: center;
@@ -94,6 +106,15 @@ body:hover .controls, body:focus-within .controls { opacity: 1; }
 .entry-percent { text-align: right; }
 
 @media (max-width: 700px) {
+  .hero-background { background-position: 62% center; }
+  .hero-content { left: 1.5rem; right: 1.5rem; top: 3rem; }
+  .hero-content h1 { font-size: clamp(2.3rem, 11vw, 4rem); }
+  .hero-tags { gap: .5rem; }
+  .hero-tags span { min-width: 0; padding: .45em .8em .52em; width: 31%; }
+  .hero-benefits { bottom: 5rem; gap: .8rem; left: 1.5rem; right: 1rem; }
+  .hero-benefits img { height: 2.2rem; width: 3rem; }
+  .hero-benefits p { font-size: .85rem; }
+  .hero-brand { bottom: 1.2rem; font-size: 2rem; left: 1.5rem; }
   .slide--video { padding: 1.5rem; }
   .leaderboard-card { border-radius: 1.4rem; padding: 1.35rem; }
   .leaderboard-item { column-gap: .75rem; }
