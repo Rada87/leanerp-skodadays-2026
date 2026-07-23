@@ -1,0 +1,7 @@
+.DS_Store
+.idea/
+output/
+.playwright-cli/
+task_plan.md
+findings.md
+progress.md
