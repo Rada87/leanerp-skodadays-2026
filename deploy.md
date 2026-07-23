@@ -19,6 +19,14 @@ Po nasazení bude projekt dostupný na:
 
 Nginx pro tento projekt obsluhuje cestu `/www/leanerp-skodadays-2026/` výhradně z adresáře `public/`.
 
+## Aktuální serverová konfigurace
+
+Projekt je nasazený na <https://srv1848295.hstgr.cloud/www/leanerp-skodadays-2026/>.
+
+- Nginx konfigurace je v `/etc/nginx/sites-available/leanerp-skodadays-2026`.
+- HTTPS certifikát pro `srv1848295.hstgr.cloud` spravuje Certbot/Let's Encrypt; automatické obnovení zajišťuje `certbot.timer`.
+- Po změně Nginx konfigurace vždy spusťte `sudo nginx -t` a teprve potom `sudo systemctl reload nginx`.
+
 ## První nasazení na serveru
 
 Přihlaste se jako administrátor a vytvořte cílové adresáře:
