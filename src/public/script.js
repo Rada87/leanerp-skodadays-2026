@@ -19,6 +19,11 @@ const leaderboardEntries = [
   { name: 'Guest', correct: '1/5 correct', date: '24 Jun 2026, 14:59', score: 95, percent: '19%' },
   { name: 'Karel', correct: '1/12 correct', date: '24 Jun 2026, 10:29', score: 55, percent: '5%' },
   { name: 'Rada', correct: '0/5 correct', date: '20 Jul 2026, 13:29', score: 0, percent: '0%' },
+  { name: 'Anna', correct: '8/12 correct', date: '21 Jul 2026, 09:12', score: 0, percent: '67%' },
+  { name: 'Petr', correct: '6/12 correct', date: '21 Jul 2026, 10:48', score: 0, percent: '50%' },
+  { name: 'Marek', correct: '5/12 correct', date: '22 Jul 2026, 08:34', score: 0, percent: '42%' },
+  { name: 'Eva', correct: '4/12 correct', date: '22 Jul 2026, 11:05', score: 0, percent: '33%' },
+  { name: 'Tomáš', correct: '3/12 correct', date: '22 Jul 2026, 15:21', score: 0, percent: '25%' },
 ];
 
 function loadPlaybackSettings() {
