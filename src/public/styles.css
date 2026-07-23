@@ -75,17 +75,17 @@ body:hover .controls, body:focus-within .controls { opacity: 1; }
 .settings-row input[type="range"] { accent-color: var(--green); width: 100%; }
 .settings-hint { color: var(--muted); font-size: .72rem; line-height: 1.35; margin: .8rem 0 0; }
 
-.slide--video { display: flex; flex-direction: column; justify-content: center; padding: clamp(2.5rem, 6vw, 7rem); }
-.video-slide__topline { color: var(--green); display: flex; font-size: clamp(.8rem, 1.2vw, 1.25rem); font-weight: 800; justify-content: space-between; letter-spacing: .08em; margin-bottom: 1.4rem; }
-.video-frame { aspect-ratio: 16 / 9; background: #080d0b; border: 1px solid rgba(103, 245, 157, .45); max-height: 72vh; position: relative; width: 100%; }
-.video-frame::before { background-image: radial-gradient(circle, rgba(103, 245, 157, .25) 1px, transparent 1px); background-size: 24px 24px; content: ""; inset: 0; opacity: .5; position: absolute; }
-.video-frame video { height: 100%; position: relative; width: 100%; z-index: 2; }
+.slide--video { background: #000; padding: 0; }
+.video-slide__topline { color: var(--green); display: flex; font-size: clamp(.7rem, 1vw, 1.05rem); font-weight: 800; justify-content: space-between; left: clamp(1.25rem, 3vw, 3.5rem); letter-spacing: .08em; position: absolute; right: clamp(1.25rem, 3vw, 3.5rem); text-shadow: 0 .1rem .5rem #000; top: clamp(1.25rem, 3vw, 3.5rem); z-index: 3; }
+.video-frame { background: #000; height: 100%; inset: 0; position: absolute; width: 100%; }
+.video-frame::before { display: none; }
+.video-frame video { height: 100%; object-fit: cover; position: relative; width: 100%; z-index: 2; }
 .video-frame video:empty { display: none; }
 .video-placeholder { align-items: center; display: flex; flex-direction: column; inset: 0; justify-content: center; pointer-events: none; position: absolute; text-align: center; z-index: 1; }
 .video-placeholder p { font-size: clamp(1.8rem, 4.5vw, 4.5rem); font-weight: 800; letter-spacing: -.04em; margin: 1rem 0 .25rem; }
 .video-placeholder small { color: var(--muted); font-size: clamp(.75rem, 1.3vw, 1.15rem); }
 .play-symbol { align-items: center; border: 2px solid var(--green); border-radius: 50%; color: var(--green); display: flex; font-size: 2rem; height: 5rem; justify-content: center; padding-left: .3rem; width: 5rem; }
-.video-slide__caption { color: var(--green); font-size: clamp(.7rem, 1.1vw, 1.1rem); font-weight: 800; letter-spacing: .09em; margin: 1.25rem 0 0; }
+.video-slide__caption { bottom: clamp(1.25rem, 3vw, 3.5rem); color: var(--green); font-size: clamp(.6rem, .85vw, .9rem); font-weight: 800; left: clamp(1.25rem, 3vw, 3.5rem); letter-spacing: .09em; margin: 0; position: absolute; text-shadow: 0 .1rem .5rem #000; z-index: 3; }
 
 .slide--leaderboard { background: #050706; padding: clamp(.25rem, .5vw, .7rem); }
 .leaderboard-card { background: #111; border: 1px solid #123325; border-radius: clamp(1.5rem, 2.5vw, 3rem); display: flex; flex-direction: column; height: 100%; padding: clamp(.8rem, 2vw, 2rem); }
