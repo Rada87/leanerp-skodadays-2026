@@ -2,6 +2,12 @@
 
 Projekt je statický a nemá build krok. GitHub slouží pro verzování celého projektu; na VPS se rsyncem posílají jen adresáře ze `src/`.
 
+## Veřejná adresa
+
+Po nasazení bude projekt dostupný na:
+
+<https://srv1848295.hstgr.cloud/www/leanerp-skodadays-2026/>
+
 ## Cílová struktura na VPS
 
 ```text
