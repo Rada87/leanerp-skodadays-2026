@@ -37,8 +37,7 @@ button { font: inherit; }
 .hero-benefits li { align-items: center; display: flex; gap: clamp(1rem, 1.8vw, 2.2rem); }
 .hero-benefits img { height: clamp(2.5rem, 4vw, 5rem); object-fit: contain; width: clamp(3.7rem, 5vw, 6rem); }
 .hero-benefits p { font-size: clamp(.95rem, 1.55vw, 2rem); letter-spacing: -.035em; line-height: 1.03; margin: 0; }
-.hero-brand { bottom: clamp(2.2rem, 5vw, 5.7rem); color: var(--green); font-size: clamp(1.6rem, 3vw, 3.8rem); left: clamp(3.8rem, 4.7vw, 6rem); letter-spacing: -.075em; position: absolute; }
-.hero-brand strong { font-weight: 900; }
+.hero-brand { bottom: clamp(2.2rem, 5vw, 5.7rem); left: clamp(3.8rem, 4.7vw, 6rem); max-width: min(28vw, 24rem); position: absolute; width: clamp(12rem, 19vw, 24rem); }
 
 .controls {
   align-items: center;
@@ -61,10 +60,10 @@ body:hover .controls, body:focus-within .controls { opacity: 1; }
 .dot.is-active { background: var(--green); }
 .arrow:focus-visible, .dot:focus-visible { outline: 2px solid var(--white); outline-offset: 3px; }
 
-.playback-settings { bottom: 1.25rem; position: fixed; right: 1.4rem; z-index: 5; }
-.settings-toggle { background: rgba(0, 0, 0, .48); border: 1px solid rgba(103, 245, 157, .32); border-radius: 50%; color: rgba(248, 248, 248, .8); cursor: pointer; font-size: 1.05rem; height: 2.4rem; opacity: .55; width: 2.4rem; }
+.playback-settings { position: fixed; right: 1.4rem; top: 1.25rem; z-index: 5; }
+.settings-toggle { background: rgba(0, 0, 0, .3); border: 1px solid rgba(103, 245, 157, .25); border-radius: 50%; color: rgba(248, 248, 248, .7); cursor: pointer; font-size: .95rem; height: 2rem; opacity: .45; width: 2rem; }
 .settings-toggle:hover, .settings-toggle:focus-visible, .settings-toggle[aria-expanded="true"] { border-color: var(--green); color: var(--green); opacity: 1; outline: none; }
-.settings-panel { background: rgba(13, 16, 14, .97); border: 1px solid rgba(103, 245, 157, .5); bottom: 3.2rem; box-shadow: 0 .8rem 2rem rgba(0, 0, 0, .4); min-width: 16rem; padding: 1rem; position: absolute; right: 0; }
+.settings-panel { background: rgba(13, 16, 14, .97); border: 1px solid rgba(103, 245, 157, .5); box-shadow: 0 .8rem 2rem rgba(0, 0, 0, .4); min-width: 16rem; padding: 1rem; position: absolute; right: 0; top: 2.8rem; }
 .settings-panel[hidden] { display: none; }
 .settings-panel__title { color: var(--green); font-size: .75rem; font-weight: 800; letter-spacing: .1em; margin-bottom: .9rem; text-transform: uppercase; }
 .settings-row { display: flex; font-size: .9rem; gap: .8rem; justify-content: space-between; }
@@ -87,13 +86,14 @@ body:hover .controls, body:focus-within .controls { opacity: 1; }
 .play-symbol { align-items: center; border: 2px solid var(--green); border-radius: 50%; color: var(--green); display: flex; font-size: 2rem; height: 5rem; justify-content: center; padding-left: .3rem; width: 5rem; }
 .video-slide__caption { bottom: clamp(1.25rem, 3vw, 3.5rem); color: var(--green); font-size: clamp(.6rem, .85vw, .9rem); font-weight: 800; left: clamp(1.25rem, 3vw, 3.5rem); letter-spacing: .09em; margin: 0; position: absolute; text-shadow: 0 .1rem .5rem #000; z-index: 3; }
 
-.slide--leaderboard { background: #050706; padding: clamp(.25rem, .5vw, .7rem); }
-.leaderboard-card { background: #111; border: 1px solid #123325; border-radius: clamp(1.5rem, 2.5vw, 3rem); display: flex; flex-direction: column; height: 100%; padding: clamp(.8rem, 2vw, 2rem); }
+.slide--leaderboard { background: radial-gradient(circle at 50% 45%, rgba(103, 245, 157, .1), transparent 38%), #050706; isolation: isolate; padding: clamp(.25rem, .5vw, .7rem); }
+.slide--leaderboard::before { background-image: linear-gradient(30deg, transparent 49.5%, rgba(103, 245, 157, .16) 50%, transparent 50.5%), linear-gradient(150deg, transparent 49.5%, rgba(103, 245, 157, .13) 50%, transparent 50.5%); background-size: 11rem 19rem; content: ""; inset: 0; opacity: .5; pointer-events: none; position: absolute; z-index: -1; }
+.leaderboard-card { background: rgba(14, 14, 14, .94); border: 1px solid rgba(103, 245, 157, .2); border-radius: clamp(1.5rem, 2.5vw, 3rem); box-shadow: 0 .5rem 2rem rgba(0, 0, 0, .45), 0 0 4rem rgba(103, 245, 157, .08); display: flex; flex-direction: column; height: 100%; padding: clamp(.8rem, 2vw, 2rem); }
 .leaderboard-card__header { flex: 0 0 auto; margin: 0 0 clamp(.65rem, 1.4vw, 1.25rem); text-align: center; }
 .leaderboard-card h1 { font-size: clamp(2rem, 3.8vw, 4.5rem); letter-spacing: -.06em; line-height: .94; margin: 0; }
-.leaderboard-card__header p { color: var(--green); font-size: clamp(.85rem, 1.45vw, 1.6rem); font-weight: 800; letter-spacing: .01em; margin: .35rem 0 0; }
+.leaderboard-card__header p { color: var(--green); font-size: clamp(.85rem, 1.45vw, 1.6rem); font-weight: 800; letter-spacing: .08em; margin: .35rem 0 0; text-transform: uppercase; }
 .leaderboard-list { display: grid; flex: 1; gap: clamp(.2rem, .45vw, .45rem); grid-template-rows: repeat(10, minmax(0, 1fr)); list-style: none; margin: 0; min-height: 0; padding: 0; }
-.leaderboard-item { align-items: center; background: #111; border: 1px solid #382824; border-radius: clamp(.55rem, .9vw, 1rem); display: grid; gap: clamp(.6rem, 1.5vw, 1.5rem); grid-template-columns: auto minmax(0, 1fr) auto; min-height: 0; padding: clamp(.2rem, .45vw, .45rem) clamp(.55rem, 1vw, 1rem); }
+.leaderboard-item { align-items: center; background: rgba(10, 10, 10, .82); border: 1px solid rgba(255, 255, 255, .1); border-radius: clamp(.55rem, .9vw, 1rem); display: grid; gap: clamp(.6rem, 1.5vw, 1.5rem); grid-template-columns: auto minmax(0, 1fr) auto; min-height: 0; padding: clamp(.2rem, .45vw, .45rem) clamp(.55rem, 1vw, 1rem); }
 .leaderboard-item--winner { background: var(--panel-soft); border-color: var(--orange); }
 .rank { align-items: center; background: #232323; border-radius: 50%; display: flex; font-size: clamp(.9rem, 1.35vw, 1.5rem); font-weight: 800; height: clamp(2.3rem, 3.2vw, 3.5rem); justify-content: center; width: clamp(2.3rem, 3.2vw, 3.5rem); }
 .leaderboard-item:nth-child(2) .rank { background: var(--green-dim); }
@@ -119,5 +119,5 @@ body:hover .controls, body:focus-within .controls { opacity: 1; }
   .leaderboard-card { border-radius: 1.4rem; padding: 1.35rem; }
   .leaderboard-item { column-gap: .75rem; }
   .entry-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .playback-settings { bottom: 1rem; right: 1rem; }
+  .playback-settings { right: 1rem; top: 1rem; }
 }
