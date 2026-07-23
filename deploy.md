@@ -42,6 +42,17 @@ rsync -av --delete src/app/ rada@srv1848295.hstgr.cloud:/srv/www/leanerp-skodada
 
 `--delete` je bezpečný jen pro versionovaný kód. Pro statický web není nutný restart služby.
 
+## Ověření po nasazení
+
+Každé nasazení musí skončit kontrolou veřejné adresy a HTTP statusu `200`:
+
+```sh
+curl --silent --show-error --output /dev/null --write-out '%{http_code}\n' \
+  https://srv1848295.hstgr.cloud/www/leanerp-skodadays-2026/
+```
+
+Pokud příkaz nevrátí `200`, nasazení není dokončené; nejdřív je potřeba ověřit Nginx konfiguraci, cílové soubory a logy.
+
 ## Neversionovaná data
 
 Pokud projekt později získá fotografie, PDF nebo SQLite databázi, patří do `/srv/www/leanerp-skodadays-2026/data/`, nikoli do repozitáře. Lokálně je protějškem adresář `src/data/`. Soubory se synchronizují samostatně, například:
