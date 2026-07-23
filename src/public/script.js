@@ -12,19 +12,8 @@ let current = 0;
 let slideTimer;
 let playbackSettings = loadPlaybackSettings();
 
-// Replace this array with a REST API response in the next development phase.
-const leaderboardEntries = [
-  { name: 'Koudy', correct: '10/12 correct', date: '24 Jun 2026, 10:29', score: 913, percent: '76%' },
-  { name: 'Test User2', correct: '7/10 correct', date: '24 Jun 2026, 10:09', score: 420, percent: '84%' },
-  { name: 'Guest', correct: '1/5 correct', date: '24 Jun 2026, 14:59', score: 95, percent: '19%' },
-  { name: 'Karel', correct: '1/12 correct', date: '24 Jun 2026, 10:29', score: 55, percent: '5%' },
-  { name: 'Rada', correct: '0/5 correct', date: '20 Jul 2026, 13:29', score: 0, percent: '0%' },
-  { name: 'Anna', correct: '8/12 correct', date: '21 Jul 2026, 09:12', score: 0, percent: '67%' },
-  { name: 'Petr', correct: '6/12 correct', date: '21 Jul 2026, 10:48', score: 0, percent: '50%' },
-  { name: 'Marek', correct: '5/12 correct', date: '22 Jul 2026, 08:34', score: 0, percent: '42%' },
-  { name: 'Eva', correct: '4/12 correct', date: '22 Jul 2026, 11:05', score: 0, percent: '33%' },
-  { name: 'Tomáš', correct: '3/12 correct', date: '22 Jul 2026, 15:21', score: 0, percent: '25%' },
-];
+const leaderboardApiUrl = '/apps/leanerp-sd-quiz/api/leaderboard';
+let leaderboardEntries = [];
 
 function loadPlaybackSettings() {
   try {
@@ -46,6 +35,11 @@ function updatePlaybackControls() {
 
 function renderLeaderboard(entries) {
   const list = document.querySelector('#leaderboard');
+  list.classList.toggle('is-empty', !entries.length);
+  if (!entries.length) {
+    list.innerHTML = '<li class="leaderboard-empty">No quiz results yet.</li>';
+    return;
+  }
   list.innerHTML = entries.map((entry, index) => `
     <li class="leaderboard-item ${index === 0 ? 'leaderboard-item--winner' : ''}">
       <span class="rank">${index + 1}</span>
@@ -59,6 +53,33 @@ function renderLeaderboard(entries) {
       </div>
     </li>
   `).join('');
+}
+
+function formatLeaderboardDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '—' : new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  }).format(date);
+}
+
+async function refreshLeaderboard() {
+  try {
+    const response = await fetch(leaderboardApiUrl, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Leaderboard API returned ${response.status}`);
+    const payload = await response.json();
+    if (!Array.isArray(payload.entries)) throw new Error('Leaderboard API returned an invalid payload');
+    leaderboardEntries = payload.entries.slice(0, 10).map((entry) => ({
+      name: entry.playerName,
+      correct: `${entry.correctAnswers}/${entry.totalQuestions} correct`,
+      date: formatLeaderboardDate(entry.createdAt),
+      score: entry.score,
+      percent: `${entry.percentage}%`,
+    }));
+    renderLeaderboard(leaderboardEntries);
+  } catch (error) {
+    console.warn('Could not refresh quiz leaderboard.', error);
+    renderLeaderboard(leaderboardEntries);
+  }
 }
 
 function stopCurrentSlidePlayback() {
@@ -101,6 +122,7 @@ function showSlide(nextIndex) {
     dot.classList.toggle('is-active', active);
     dot.setAttribute('aria-selected', String(active));
   });
+  if (current === 2) refreshLeaderboard();
   startCurrentSlidePlayback();
 }
 
@@ -154,5 +176,7 @@ document.addEventListener('keydown', (event) => {
 });
 
 renderLeaderboard(leaderboardEntries);
+refreshLeaderboard();
+window.setInterval(refreshLeaderboard, 30000);
 updatePlaybackControls();
 startCurrentSlidePlayback();

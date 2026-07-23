@@ -88,11 +88,12 @@ body:hover .controls, body:focus-within .controls { opacity: 1; }
 
 .slide--leaderboard { background: radial-gradient(circle at 50% 45%, rgba(103, 245, 157, .1), transparent 38%), #050706; isolation: isolate; padding: clamp(.25rem, .5vw, .7rem); }
 .slide--leaderboard::before { background-image: linear-gradient(30deg, transparent 49.5%, rgba(103, 245, 157, .16) 50%, transparent 50.5%), linear-gradient(150deg, transparent 49.5%, rgba(103, 245, 157, .13) 50%, transparent 50.5%); background-size: 11rem 19rem; content: ""; inset: 0; opacity: .5; pointer-events: none; position: absolute; z-index: -1; }
-.leaderboard-card { background: rgba(14, 14, 14, .94); border: 1px solid rgba(103, 245, 157, .2); border-radius: clamp(1.5rem, 2.5vw, 3rem); box-shadow: 0 .5rem 2rem rgba(0, 0, 0, .45), 0 0 4rem rgba(103, 245, 157, .08); display: flex; flex-direction: column; height: 100%; padding: clamp(.8rem, 2vw, 2rem); }
+.leaderboard-card { background: rgba(14, 14, 14, .94); border: 0px solid rgba(103, 245, 157, .2); border-radius: clamp(1.5rem, 2.5vw, 3rem); box-shadow: 0 .5rem 2rem rgba(0, 0, 0, .45), 0 0 4rem rgba(103, 245, 157, .08); display: flex; flex-direction: column; height: 100%; padding: clamp(.8rem, 2vw, 2rem); }
 .leaderboard-card__header { flex: 0 0 auto; margin: 0 0 clamp(.65rem, 1.4vw, 1.25rem); text-align: center; }
 .leaderboard-card h1 { font-size: clamp(2rem, 3.8vw, 4.5rem); letter-spacing: -.06em; line-height: .94; margin: 0; }
 .leaderboard-card__header p { color: var(--green); font-size: clamp(.85rem, 1.45vw, 1.6rem); font-weight: 800; letter-spacing: .08em; margin: .35rem 0 0; text-transform: uppercase; }
 .leaderboard-list { display: grid; flex: 1; gap: clamp(.2rem, .45vw, .45rem); grid-template-rows: repeat(10, minmax(0, 1fr)); list-style: none; margin: 0; min-height: 0; padding: 0; }
+.leaderboard-list.is-empty { grid-template-rows: minmax(0, 1fr); }
 .leaderboard-item { align-items: center; background: rgba(10, 10, 10, .82); border: 1px solid rgba(255, 255, 255, .1); border-radius: clamp(.55rem, .9vw, 1rem); display: grid; gap: clamp(.6rem, 1.5vw, 1.5rem); grid-template-columns: auto minmax(0, 1fr) auto; min-height: 0; padding: clamp(.2rem, .45vw, .45rem) clamp(.55rem, 1vw, 1rem); }
 .leaderboard-item--winner { background: var(--panel-soft); border-color: var(--orange); }
 .rank { align-items: center; background: #232323; border-radius: 50%; display: flex; font-size: clamp(.9rem, 1.35vw, 1.5rem); font-weight: 800; height: clamp(2.3rem, 3.2vw, 3.5rem); justify-content: center; width: clamp(2.3rem, 3.2vw, 3.5rem); }
@@ -104,6 +105,7 @@ body:hover .controls, body:focus-within .controls { opacity: 1; }
 .entry-score { color: var(--white); font-size: clamp(1.15rem, 1.7vw, 2rem); font-weight: 800; text-align: right; }
 .leaderboard-item--winner .entry-score { color: var(--green); }
 .entry-percent { text-align: right; }
+.leaderboard-empty { align-items: center; border: 1px solid rgba(103, 245, 157, .2); color: var(--muted); display: flex; font-size: clamp(1rem, 1.5vw, 1.5rem); justify-content: center; min-height: 100%; }
 
 @media (max-width: 700px) {
   .hero-background { background-position: 62% center; }

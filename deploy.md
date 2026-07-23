@@ -19,6 +19,16 @@ Po nasazení bude projekt dostupný na:
 
 Nginx pro tento projekt obsluhuje cestu `/www/leanerp-skodadays-2026/` výhradně z adresáře `public/`.
 
+## Online leaderboard
+
+Třetí slide načítá živé výsledky z quizu přes stejnou HTTPS doménu:
+
+```text
+https://srv1848295.hstgr.cloud/apps/leanerp-sd-quiz/api/leaderboard
+```
+
+Každých 30 sekund se data obnoví; při vstupu na třetí slide proběhne nové načtení ihned. Pokud zatím neexistuje výsledek, slide zobrazí stav `No quiz results yet.`
+
 ## Aktuální serverová konfigurace
 
 Projekt je nasazený na <https://srv1848295.hstgr.cloud/www/leanerp-skodadays-2026/>.
@@ -59,6 +69,9 @@ Každé nasazení musí skončit kontrolou veřejné adresy a HTTP statusu `200`
 ```sh
 curl --silent --show-error --output /dev/null --write-out '%{http_code}\n' \
   https://srv1848295.hstgr.cloud/www/leanerp-skodadays-2026/
+
+curl --fail --silent --show-error \
+  https://srv1848295.hstgr.cloud/apps/leanerp-sd-quiz/api/leaderboard
 ```
 
 Pokud příkaz nevrátí `200`, nasazení není dokončené; nejdřív je potřeba ověřit Nginx konfiguraci, cílové soubory a logy.
