@@ -1,6 +1,16 @@
 const slides = [...document.querySelectorAll('.slide')];
 const dots = [...document.querySelectorAll('.dot')];
+const video = document.querySelector('#presentation-video');
+const settingsToggle = document.querySelector('.settings-toggle');
+const settingsPanel = document.querySelector('.settings-panel');
+const autoplayInput = document.querySelector('#autoplay-enabled');
+const durationInput = document.querySelector('#slide-duration');
+const durationOutput = document.querySelector('#slide-duration-value');
+const playbackStorageKey = 'leanerp-skoda-playback-settings';
+const defaultPlaybackSettings = { enabled: true, duration: 10 };
 let current = 0;
+let slideTimer;
+let playbackSettings = loadPlaybackSettings();
 
 // Replace this array with a REST API response in the next development phase.
 const leaderboardEntries = [
@@ -10,6 +20,24 @@ const leaderboardEntries = [
   { name: 'Karel', correct: '1/12 correct', date: '24 Jun 2026, 10:29', score: 55, percent: '5%' },
   { name: 'Rada', correct: '0/5 correct', date: '20 Jul 2026, 13:29', score: 0, percent: '0%' },
 ];
+
+function loadPlaybackSettings() {
+  try {
+    return { ...defaultPlaybackSettings, ...JSON.parse(localStorage.getItem(playbackStorageKey)) };
+  } catch {
+    return { ...defaultPlaybackSettings };
+  }
+}
+
+function savePlaybackSettings() {
+  localStorage.setItem(playbackStorageKey, JSON.stringify(playbackSettings));
+}
+
+function updatePlaybackControls() {
+  autoplayInput.checked = playbackSettings.enabled;
+  durationInput.value = playbackSettings.duration;
+  durationOutput.textContent = `${playbackSettings.duration} s`;
+}
 
 function renderLeaderboard(entries) {
   const list = document.querySelector('#leaderboard');
@@ -28,7 +56,39 @@ function renderLeaderboard(entries) {
   `).join('');
 }
 
+function stopCurrentSlidePlayback() {
+  window.clearTimeout(slideTimer);
+  if (video && current === 1) {
+    video.pause();
+    video.currentTime = 0;
+  }
+}
+
+function scheduleNextSlide() {
+  window.clearTimeout(slideTimer);
+  if (!playbackSettings.enabled) return;
+  slideTimer = window.setTimeout(() => showSlide(current + 1), playbackSettings.duration * 1000);
+}
+
+function playVideoSlide() {
+  if (!playbackSettings.enabled || !video) return;
+  const playAttempt = video.play();
+  if (playAttempt) {
+    playAttempt.catch(() => scheduleNextSlide());
+  }
+}
+
+function startCurrentSlidePlayback() {
+  if (!playbackSettings.enabled) return;
+  if (current === 1 && video?.querySelector('source')) {
+    playVideoSlide();
+  } else {
+    scheduleNextSlide();
+  }
+}
+
 function showSlide(nextIndex) {
+  stopCurrentSlidePlayback();
   current = (nextIndex + slides.length) % slides.length;
   slides.forEach((slide, index) => { slide.hidden = index !== current; });
   dots.forEach((dot, index) => {
@@ -36,7 +96,36 @@ function showSlide(nextIndex) {
     dot.classList.toggle('is-active', active);
     dot.setAttribute('aria-selected', String(active));
   });
+  startCurrentSlidePlayback();
 }
+
+settingsToggle.addEventListener('click', () => {
+  const expanded = settingsToggle.getAttribute('aria-expanded') === 'true';
+  settingsToggle.setAttribute('aria-expanded', String(!expanded));
+  settingsPanel.hidden = expanded;
+});
+
+autoplayInput.addEventListener('change', () => {
+  playbackSettings.enabled = autoplayInput.checked;
+  savePlaybackSettings();
+  stopCurrentSlidePlayback();
+  startCurrentSlidePlayback();
+});
+
+durationInput.addEventListener('input', () => {
+  playbackSettings.duration = Number(durationInput.value);
+  updatePlaybackControls();
+  savePlaybackSettings();
+  if (current !== 1) scheduleNextSlide();
+});
+
+video?.addEventListener('ended', () => {
+  if (playbackSettings.enabled && current === 1) showSlide(current + 1);
+});
+
+video?.addEventListener('error', () => {
+  if (playbackSettings.enabled && current === 1) scheduleNextSlide();
+});
 
 document.addEventListener('click', (event) => {
   const target = event.target.closest('button');
@@ -49,6 +138,16 @@ document.addEventListener('click', (event) => {
 document.addEventListener('keydown', (event) => {
   if (event.key === 'ArrowRight' || event.key === 'PageDown') showSlide(current + 1);
   if (event.key === 'ArrowLeft' || event.key === 'PageUp') showSlide(current - 1);
+  if (event.key === ' ') {
+    event.preventDefault();
+    playbackSettings.enabled = !playbackSettings.enabled;
+    updatePlaybackControls();
+    savePlaybackSettings();
+    stopCurrentSlidePlayback();
+    startCurrentSlidePlayback();
+  }
 });
 
 renderLeaderboard(leaderboardEntries);
+updatePlaybackControls();
+startCurrentSlidePlayback();

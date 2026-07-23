@@ -17,7 +17,7 @@
       <section class="slide slide--video" data-slide="1" aria-label="Slide 2 of 3" hidden>
         <div class="video-slide__topline"><span>LEAN ERP</span><span>ŠKODA GCC</span></div>
         <div class="video-frame">
-          <video id="presentation-video" controls playsinline preload="metadata" aria-label="Lean ERP presentation video">
+          <video id="presentation-video" controls muted playsinline preload="metadata" aria-label="Lean ERP presentation video">
             <source src="media/lean-erp-promo.mp4" type="video/mp4" />
           </video>
           <div class="video-placeholder" aria-hidden="true">
@@ -49,6 +49,22 @@
       </div>
       <button class="arrow" type="button" data-action="next" aria-label="Next slide">→</button>
     </nav>
+
+    <div class="playback-settings">
+      <button class="settings-toggle" type="button" aria-label="Presentation playback settings" aria-expanded="false" aria-controls="playback-panel">⚙</button>
+      <section class="settings-panel" id="playback-panel" aria-label="Presentation playback settings" hidden>
+        <div class="settings-panel__title">Playback</div>
+        <label class="settings-row settings-row--toggle">
+          <span>Auto-play</span>
+          <input id="autoplay-enabled" type="checkbox" checked />
+        </label>
+        <label class="settings-row settings-row--range" for="slide-duration">
+          <span>Slide duration <output id="slide-duration-value" for="slide-duration">10 s</output></span>
+          <input id="slide-duration" type="range" min="5" max="60" step="1" value="10" />
+        </label>
+        <p class="settings-hint">Video advances when playback ends.</p>
+      </section>
+    </div>
 
     <script src="script.js"></script>
   </body>
