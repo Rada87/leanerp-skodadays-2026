@@ -50,6 +50,8 @@ rsync -av --delete src/app/ rada@srv1848295.hstgr.cloud:/srv/www/leanerp-skodada
 
 `--delete` je bezpečný jen pro versionovaný kód. Pro statický web není nutný restart služby.
 
+Veřejná média ve `src/public/media/` (například obrázky a MP4) jsou záměrně ignorovaná Gitem, ale tento rsync je nasadí na server. Před deployem proto musí být v lokálním adresáři dostupná.
+
 ## Ověření po nasazení
 
 Každé nasazení musí skončit kontrolou veřejné adresy a HTTP statusu `200`:

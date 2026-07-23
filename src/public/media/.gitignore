@@ -1,0 +1,7 @@
+# Veřejná média se nasazují rsyncem, ale neukládají do Git repozitáře.
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.mp4
+*.pdf
