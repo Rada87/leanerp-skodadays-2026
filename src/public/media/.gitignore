@@ -5,3 +5,7 @@
 *.webp
 *.mp4
 *.pdf
+*.svg
+*.ttf
+*.woff
+*.woff2

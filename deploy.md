@@ -27,7 +27,7 @@ Třetí slide načítá živé výsledky z quizu přes stejnou HTTPS doménu:
 https://srv1848295.hstgr.cloud/apps/leanerp-sd-quiz/api/leaderboard
 ```
 
-Každých 30 sekund se data obnoví; při vstupu na třetí slide proběhne nové načtení ihned. Pokud zatím neexistuje výsledek, slide zobrazí stav `No quiz results yet.`
+Při zobrazení třetího slidu se data načtou ihned a potom každé 3 sekundy. Obnova běží pouze po dobu, kdy je leaderboard aktivní, požadavky se nepřekrývají a obsah stránky se překreslí jen při skutečné změně výsledků. Pokud zatím neexistuje výsledek, slide zobrazí stav `No quiz results yet.`
 
 ## Aktuální serverová konfigurace
 
