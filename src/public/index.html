@@ -4,9 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#000000" />
-    <title>LeanERP × Škoda GCC</title>
-    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <title>LEAN ERP | Škoda Days 2026</title>
+    <link rel="icon" href="favicon.png" type="image/png" />
     <link rel="stylesheet" href="styles.css" />
+    <!-- Shared design tokens/components from the quiz app, so the quiz
+         mirror and result animation stay visually identical to the quiz
+         itself. Single source of truth, served by the quiz backend. -->
+    <link rel="stylesheet" href="/apps/leanerp-sd-quiz/theme.css" />
   </head>
   <body>
     <main class="presentation" aria-label="LeanERP Škoda GCC presentation">
@@ -14,19 +18,19 @@
         <div class="hero-background" aria-hidden="true"></div>
         <div class="hero-content">
           <p class="hero-eyebrow">LEAN ERP</p>
-          <h1>Ready-made SAP S/4HANA<br />logistic solution for CKD plants</h1>
+          <h1>Ready-made SAP S/4HANA solution</br>for CKD plants</h1>
           <div class="hero-tags" aria-label="Key benefits"><span>Budget</span><span>Fast</span><span>Lean</span></div>
+          <ul class="hero-benefits" aria-label="Lean ERP benefits">
+            <li><img src="media/icons/truck.svg" alt="" /><p><strong>Complete logistic process</strong> coverage<br />by one robust system.</p></li>
+            <li><img src="media/icons/speedometer.svg" alt="" /><p><strong>Cost efficient, ready-made</strong> solution<br />with <strong>fast implementation.</strong></p></li>
+            <li><img src="media/icons/monitor-chart.svg" alt="" /><p>Intuitive <strong>KPI Tracking</strong> via simple<br />management <strong>dashboard feature.</strong></p></li>
+          </ul>
+          <img class="hero-brand" src="brand/skoda-gcc.svg" alt="" />
         </div>
-        <ul class="hero-benefits" aria-label="Lean ERP benefits">
-          <li><img src="media/icons/truck.svg" alt="" /><p><strong>Complete logistic process</strong> coverage<br />by one robust system.</p></li>
-          <li><img src="media/icons/speedometer.svg" alt="" /><p><strong>Cost efficient, ready-made</strong> solution<br />with <strong>fast implementation.</strong></p></li>
-          <li><img src="media/icons/monitor-chart.svg" alt="" /><p><strong>Intuitive KPI Tracking</strong> via simple<br />management <strong>dashboard feature.</strong></p></li>
-        </ul>
-        <img class="hero-brand" src="brand/skoda-gcc.svg" alt="Škoda GCC" />
       </section>
 
       <section class="slide slide--video" data-slide="1" aria-label="Slide 2 of 3" hidden>
-        <div class="video-slide__topline"><span>LEAN ERP</span><span>ŠKODA GCC</span></div>
+        <div class="video-slide__topline">&nbsp;</div>
         <div class="video-frame">
           <video id="presentation-video" controls muted playsinline preload="metadata" aria-label="Lean ERP presentation video">
             <source src="media/lean-erp-promo.mp4" type="video/mp4" />
@@ -37,7 +41,7 @@
             <small>MP4 source will be added here</small>
           </div>
         </div>
-        <p class="video-slide__caption">READY-MADE SAP S/4HANA LOGISTIC SOLUTION FOR CKD PLANTS</p>
+        <p class="video-slide__caption">&nbsp;</p>
       </section>
 
       <section class="slide slide--leaderboard" data-slide="2" aria-label="Slide 3 of 3" hidden>
@@ -61,19 +65,82 @@
       <button class="arrow" type="button" data-action="next" aria-label="Next slide">→</button>
     </nav>
 
+    <canvas class="quiz-bg-pattern" id="quiz-bg-pattern" aria-hidden="true"></canvas>
+
+    <div class="quiz-mirror" id="quiz-mirror" aria-label="Live quiz progress" aria-live="polite" hidden>
+      <canvas class="quiz-mirror__confetti" id="quiz-mirror-confetti"></canvas>
+      <div class="quiz-mirror__card screen-card">
+        <div class="quiz-mirror__topbar">
+          <div class="quiz-mirror__user">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5" />
+              <path d="M2.5 14c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            </svg>
+            <span id="quiz-mirror-name"></span>
+            <span class="quiz-mirror__progress" id="quiz-mirror-progress"></span>
+          </div>
+          <div class="quiz-mirror__stats">
+            <div class="quiz-mirror__stat">
+              <div class="quiz-mirror__stat-label">Potential</div>
+              <div class="quiz-mirror__stat-value quiz-mirror__stat-value--potential" id="quiz-mirror-potential">+0</div>
+            </div>
+            <div class="quiz-mirror__stat">
+              <div class="quiz-mirror__stat-label">Score</div>
+              <div class="quiz-mirror__stat-value" id="quiz-mirror-score">0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="quiz-mirror__timer-track">
+          <div class="quiz-mirror__timer-fill" id="quiz-mirror-timer"></div>
+        </div>
+
+        <p class="quiz-mirror__category" id="quiz-mirror-category"></p>
+        <h2 class="quiz-mirror__question" id="quiz-mirror-question"></h2>
+        <div class="quiz-mirror__options" id="quiz-mirror-options"></div>
+        <div class="quiz-mirror__feedback" id="quiz-mirror-feedback" hidden>
+          <div class="quiz-mirror__feedback-title" id="quiz-mirror-feedback-title"></div>
+          <div class="quiz-mirror__feedback-explanation" id="quiz-mirror-feedback-explanation"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="quiz-interrupt" id="quiz-interrupt" aria-label="Quiz result" aria-live="polite" hidden>
+      <canvas class="quiz-interrupt__confetti" id="quiz-interrupt-confetti"></canvas>
+      <div class="quiz-interrupt__card">
+        <p class="quiz-interrupt__kicker">LEAN ERP QUIZ &middot; RESULT</p>
+        <p class="quiz-interrupt__eyebrow">Great job, <span id="quiz-interrupt-name"></span>!</p>
+        <div class="quiz-interrupt__score" id="quiz-interrupt-score">0</div>
+        <div class="quiz-interrupt__maxscore">out of <span id="quiz-interrupt-maxscore"></span> points</div>
+        <div class="quiz-interrupt__stats">
+          <div>
+            <div class="quiz-interrupt__stat-value" id="quiz-interrupt-accuracy"></div>
+            <div class="quiz-interrupt__stat-label">Accuracy</div>
+          </div>
+          <div class="quiz-interrupt__divider"></div>
+          <div>
+            <div class="quiz-interrupt__stat-value" id="quiz-interrupt-correct"></div>
+            <div class="quiz-interrupt__stat-label">Correct</div>
+          </div>
+        </div>
+        <div class="quiz-interrupt__rank" id="quiz-interrupt-rank" hidden></div>
+      </div>
+    </div>
+
     <div class="playback-settings">
       <button class="settings-toggle" type="button" aria-label="Presentation playback settings" aria-expanded="false" aria-controls="playback-panel" title="Presentation playback settings">⚙</button>
       <section class="settings-panel" id="playback-panel" aria-label="Presentation playback settings" hidden>
         <div class="settings-panel__title">Playback</div>
         <label class="settings-row settings-row--toggle">
           <span>Auto-play</span>
-          <input id="autoplay-enabled" type="checkbox" checked />
+          <input id="autoplay-enabled" type="checkbox" />
         </label>
         <label class="settings-row settings-row--range" for="slide-duration">
           <span>Slide duration <output id="slide-duration-value" for="slide-duration">10 s</output></span>
           <input id="slide-duration" type="range" min="5" max="60" step="1" value="10" />
         </label>
         <p class="settings-hint">Video advances when playback ends.</p>
+        <a class="quiz-link" href="https://srv1848295.hstgr.cloud/apps/leanerp-sd-quiz/" target="_blank" rel="noopener noreferrer">Open CKD Process Quiz <span aria-hidden="true">↗</span></a>
       </section>
     </div>
 
