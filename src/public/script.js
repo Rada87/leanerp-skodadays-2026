@@ -804,36 +804,106 @@ function interruptWithQuizResult(payload) {
   });
 }
 
+// Diagnostics for the live mirror. A corporate proxy between this screen and
+// the server can silently buffer or drop the event stream, which looks
+// identical to "nothing is happening", so the stream narrates itself.
+const LOG = '[quiz-mirror]';
+const READY_STATE_NAMES = ['CONNECTING', 'OPEN', 'CLOSED'];
+const STATUS_INTERVAL_MS = 30000;
+let lastEventAt = null;
+let eventCounts = { quiz_progress: 0, quiz_completed: 0, queue_state: 0 };
+
+function logEvent(type) {
+  lastEventAt = Date.now();
+  eventCounts[type] = (eventCounts[type] || 0) + 1;
+}
+
+function secondsSinceLastEvent() {
+  return lastEventAt === null ? null : Math.round((Date.now() - lastEventAt) / 1000);
+}
+
 function connectQuizEvents() {
+  console.log(`${LOG} connecting to ${quizEventsUrl} (page origin ${window.location.origin})`);
   const source = new EventSource(quizEventsUrl);
+
+  source.onopen = () => {
+    console.log(`${LOG} stream OPEN — server reachable, waiting for events.`);
+  };
+
   source.addEventListener('quiz_completed', (event) => {
+    logEvent('quiz_completed');
     try {
-      interruptWithQuizResult(JSON.parse(event.data));
+      const payload = JSON.parse(event.data);
+      console.log(`${LOG} quiz_completed: ${payload.playerName} scored ${payload.score}`);
+      if (mirrorMode === 'off') {
+        console.warn(`${LOG} …ignored: "Show on this screen" is set to Off.`);
+      }
+      interruptWithQuizResult(payload);
     } catch (error) {
-      console.warn('Could not parse quiz_completed event.', error);
+      console.warn(`${LOG} could not parse quiz_completed event.`, error);
     }
   });
+
   source.addEventListener('queue_state', (event) => {
-    if (!mirrorQueue) return;
+    logEvent('queue_state');
     try {
-      const count = JSON.parse(event.data).waitingCount ?? 0;
+      const data = JSON.parse(event.data);
+      const count = data.waitingCount ?? 0;
+      console.log(`${LOG} queue_state: playing=${data.active?.playerName ?? '-'} waiting=${count}`);
+      if (!mirrorQueue) return;
       mirrorQueue.hidden = count < 1;
       mirrorQueue.textContent = count === 1 ? '1 waiting' : `${count} waiting`;
     } catch (error) {
-      console.warn('Could not parse queue_state event.', error);
+      console.warn(`${LOG} could not parse queue_state event.`, error);
     }
   });
+
   source.addEventListener('quiz_progress', (event) => {
+    logEvent('quiz_progress');
     try {
       const payload = JSON.parse(event.data);
-      if (payload.type === 'question') renderMirrorQuestion(payload);
+      console.log(
+        `${LOG} quiz_progress: ${payload.playerName} Q${(payload.questionIndex ?? 0) + 1}/${payload.totalQuestions}`
+      );
+      if (payload.type !== 'question') return;
+      if (mirrorMode !== 'full') {
+        console.warn(
+          `${LOG} …not shown: "Show on this screen" is set to "${mirrorMode}". Set it to Full quiz to mirror live questions.`
+        );
+        return;
+      }
+      if (isInterrupting) {
+        console.log(`${LOG} …held back: a result takeover is on screen right now.`);
+        return;
+      }
+      renderMirrorQuestion(payload);
     } catch (error) {
-      console.warn('Could not parse quiz_progress event.', error);
+      console.warn(`${LOG} could not parse quiz_progress event.`, error);
     }
   });
-  source.onerror = (error) => {
-    console.warn('Quiz events stream error (browser will retry automatically).', error);
+
+  source.onerror = () => {
+    const state = READY_STATE_NAMES[source.readyState] ?? source.readyState;
+    console.warn(
+      `${LOG} stream error — readyState=${state}. ` +
+        (source.readyState === 2
+          ? 'Connection was closed; the browser will retry. A proxy that cuts long-lived connections does this.'
+          : 'Reconnecting…')
+    );
   };
+
+  // Periodic heartbeat of our own: on a proxy that buffers the stream the
+  // connection looks OPEN while no event ever arrives, and only this line
+  // makes that visible.
+  setInterval(() => {
+    const state = READY_STATE_NAMES[source.readyState] ?? source.readyState;
+    const since = secondsSinceLastEvent();
+    console.log(
+      `${LOG} status: readyState=${state}, mode=${mirrorMode}, ` +
+        `events received progress=${eventCounts.quiz_progress} completed=${eventCounts.quiz_completed} queue=${eventCounts.queue_state}, ` +
+        (since === null ? 'no event received yet.' : `last event ${since}s ago.`)
+    );
+  }, STATUS_INTERVAL_MS);
 }
 
 function closeSettingsPanel() {
