@@ -60,6 +60,7 @@ const mirrorConfettiCanvas = document.querySelector('#quiz-mirror-confetti');
 const mirrorFeedback = document.querySelector('#quiz-mirror-feedback');
 const mirrorFeedbackTitle = document.querySelector('#quiz-mirror-feedback-title');
 const mirrorFeedbackExplanation = document.querySelector('#quiz-mirror-feedback-explanation');
+const mirrorQueue = document.querySelector('#quiz-mirror-queue');
 let mirrorFeedbackKey = null;
 let stopMirrorConfetti;
 const MIRROR_STALE_MS = 90000;
@@ -800,6 +801,16 @@ function connectQuizEvents() {
       interruptWithQuizResult(JSON.parse(event.data));
     } catch (error) {
       console.warn('Could not parse quiz_completed event.', error);
+    }
+  });
+  source.addEventListener('queue_state', (event) => {
+    if (!mirrorQueue) return;
+    try {
+      const count = JSON.parse(event.data).waitingCount ?? 0;
+      mirrorQueue.hidden = count < 1;
+      mirrorQueue.textContent = count === 1 ? '1 waiting' : `${count} waiting`;
+    } catch (error) {
+      console.warn('Could not parse queue_state event.', error);
     }
   });
   source.addEventListener('quiz_progress', (event) => {
