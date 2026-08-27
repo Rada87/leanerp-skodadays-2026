@@ -57,8 +57,13 @@ const interruptCorrect = document.querySelector('#quiz-interrupt-correct');
 const interruptRank = document.querySelector('#quiz-interrupt-rank');
 let isInterrupting = false;
 let activeCompletionKey = null;
+let activeCompletionOwner = null;
 let heldProgress = null;
 let heldCompletion = null;
+let cancelScoreCountUp;
+let resultHoldTimer;
+let stopResultConfetti;
+const RESULT_HOLD_MS = 5000;
 
 const mirrorOverlay = document.querySelector('#quiz-mirror');
 const mirrorName = document.querySelector('#quiz-mirror-name');
@@ -608,17 +613,22 @@ function animateScoreCountUp(target, onDone) {
   let finished = false;
   let interval;
 
-  const finish = () => {
+  const cancel = () => {
     if (finished) return;
     finished = true;
     window.clearInterval(interval);
+  };
+
+  const finish = () => {
+    if (finished) return;
+    cancel();
     onDone();
   };
 
   if (!interruptScore) {
     console.warn(`${LOG} score element is missing; skipping the result count-up.`);
     finish();
-    return;
+    return cancel;
   }
 
   interval = window.setInterval(() => {
@@ -633,6 +643,8 @@ function animateScoreCountUp(target, onDone) {
       finish();
     }
   }, duration / steps);
+
+  return cancel;
 }
 
 function stopMirrorCountdown() {
@@ -809,6 +821,11 @@ function completionKey(payload) {
   ]);
 }
 
+function playerOwner(payload) {
+  if (payload.clientId) return `client:${payload.clientId}`;
+  return `name:${payload.playerName || ''}`;
+}
+
 async function resumeAfterResultTakeover() {
   const pendingCompletion = heldCompletion;
   const pendingProgress = heldProgress;
@@ -823,7 +840,7 @@ async function resumeAfterResultTakeover() {
   // flight. Never overwrite it with an older held event.
   if (isInterrupting) return;
   if (pendingCompletion) {
-    interruptWithQuizResult(pendingCompletion.payload, pendingCompletion.sequence);
+    interruptWithQuizResult(pendingCompletion.payload);
     return;
   }
   if (mirrorActive) return;
@@ -836,7 +853,27 @@ async function resumeAfterResultTakeover() {
   showSlide(2);
 }
 
-function interruptWithQuizResult(payload, sequence = null) {
+function closeResultTakeover() {
+  if (!isInterrupting) return;
+
+  cancelScoreCountUp?.();
+  cancelScoreCountUp = undefined;
+  window.clearTimeout(resultHoldTimer);
+  resultHoldTimer = undefined;
+  try {
+    stopResultConfetti?.();
+  } catch (error) {
+    console.warn(`${LOG} could not stop result confetti cleanly.`, error);
+  }
+  stopResultConfetti = undefined;
+
+  if (interruptOverlay) interruptOverlay.hidden = true;
+  isInterrupting = false;
+  activeCompletionKey = null;
+  activeCompletionOwner = null;
+}
+
+function interruptWithQuizResult(payload) {
   if (mirrorMode === 'off') return;
   if (isInterrupting) return;
   if (!interruptOverlay) {
@@ -845,6 +882,7 @@ function interruptWithQuizResult(payload, sequence = null) {
   }
   isInterrupting = true;
   activeCompletionKey = completionKey(payload);
+  activeCompletionOwner = playerOwner(payload);
 
   window.clearTimeout(slideTimer);
   window.clearTimeout(mirrorStaleTimer);
@@ -877,22 +915,14 @@ function interruptWithQuizResult(payload, sequence = null) {
   }
 
   interruptOverlay.hidden = false;
-  const stopConfetti = launchConfetti(interruptConfettiCanvas);
+  stopResultConfetti = launchConfetti(interruptConfettiCanvas);
 
-  animateScoreCountUp(payload.score ?? 0, () => {
-    const holdMs = Math.max(playbackSettings.duration, 5) * 1000;
-    window.setTimeout(() => {
-      try {
-        stopConfetti();
-      } catch (error) {
-        console.warn(`${LOG} could not stop result confetti cleanly.`, error);
-      } finally {
-        interruptOverlay.hidden = true;
-        isInterrupting = false;
-        activeCompletionKey = null;
-        void resumeAfterResultTakeover();
-      }
-    }, holdMs);
+  cancelScoreCountUp = animateScoreCountUp(payload.score ?? 0, () => {
+    cancelScoreCountUp = undefined;
+    resultHoldTimer = window.setTimeout(() => {
+      closeResultTakeover();
+      void resumeAfterResultTakeover();
+    }, RESULT_HOLD_MS);
   });
 }
 
@@ -939,7 +969,7 @@ function applyCompleted(payload, sequence = null) {
     console.log(`${LOG} …retained until the current result takeover finishes.`);
     return;
   }
-  interruptWithQuizResult(payload, sequence);
+  interruptWithQuizResult(payload);
 }
 
 function applyQueueState(data) {
@@ -962,6 +992,20 @@ function applyProgress(payload, sequence = null) {
     return;
   }
   if (isInterrupting) {
+    if (
+      sequence !== null && sequence > seenSeq.completed &&
+      playerOwner(payload) !== activeCompletionOwner
+    ) {
+      console.log(`${LOG} …new player started; ending the previous result takeover now.`);
+      heldProgress = null;
+      if (heldCompletion?.sequence === null || (heldCompletion?.sequence ?? 0) < sequence) {
+        heldCompletion = null;
+      }
+      closeResultTakeover();
+      renderMirrorQuestion(payload);
+      void pollOnce();
+      return;
+    }
     heldProgress = rememberLatest(heldProgress, payload, sequence);
     console.log(`${LOG} …retained: a result takeover is on screen right now.`);
     return;
