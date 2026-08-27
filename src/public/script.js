@@ -822,23 +822,115 @@ function secondsSinceLastEvent() {
   return lastEventAt === null ? null : Math.round((Date.now() - lastEventAt) / 1000);
 }
 
+// --- Handling, shared by the event stream and the polling fallback ---
+
+function applyCompleted(payload) {
+  console.log(`${LOG} quiz_completed: ${payload.playerName} scored ${payload.score}`);
+  if (mirrorMode === 'off') {
+    console.warn(`${LOG} …ignored: "Show on this screen" is set to Off.`);
+  }
+  interruptWithQuizResult(payload);
+}
+
+function applyQueueState(data) {
+  const count = data.waitingCount ?? 0;
+  console.log(`${LOG} queue_state: playing=${data.active?.playerName ?? '-'} waiting=${count}`);
+  if (!mirrorQueue) return;
+  mirrorQueue.hidden = count < 1;
+  mirrorQueue.textContent = count === 1 ? '1 waiting' : `${count} waiting`;
+}
+
+function applyProgress(payload) {
+  console.log(
+    `${LOG} quiz_progress: ${payload.playerName} Q${(payload.questionIndex ?? 0) + 1}/${payload.totalQuestions}`
+  );
+  if (payload.type !== 'question') return;
+  if (mirrorMode !== 'full') {
+    console.warn(
+      `${LOG} …not shown: "Show on this screen" is set to "${mirrorMode}". Set it to Full quiz to mirror live questions.`
+    );
+    return;
+  }
+  if (isInterrupting) {
+    console.log(`${LOG} …held back: a result takeover is on screen right now.`);
+    return;
+  }
+  renderMirrorQuestion(payload);
+}
+
+// --- Polling fallback ---
+//
+// A proxy that buffers long-lived responses makes the event stream useless:
+// it opens late and then delivers in delayed batches. Ordinary requests get
+// through such a proxy untouched, so the screen falls back to asking.
+
+const quizStateUrl = '/apps/leanerp-sd-quiz/api/state';
+const POLL_INTERVAL_MS = 2000;
+const STREAM_GRACE_MS = 6000;
+let pollTimer = null;
+let streamHealthy = false;
+const seenSeq = { progress: 0, completed: 0, queue: 0 };
+
+async function pollOnce() {
+  try {
+    const res = await fetch(quizStateUrl, { cache: 'no-store' });
+    if (!res.ok) {
+      console.warn(`${LOG} poll rejected with ${res.status}.`);
+      return;
+    }
+    const state = await res.json();
+    if (state.queue && state.queue.seq > seenSeq.queue) {
+      seenSeq.queue = state.queue.seq;
+      applyQueueState(state.queue.data);
+    }
+    if (state.completed && state.completed.seq > seenSeq.completed) {
+      seenSeq.completed = state.completed.seq;
+      applyCompleted(state.completed.data);
+      return; // a takeover supersedes any question underneath it
+    }
+    if (state.progress && state.progress.seq > seenSeq.progress) {
+      seenSeq.progress = state.progress.seq;
+      applyProgress(state.progress.data);
+    }
+  } catch (error) {
+    console.warn(`${LOG} poll failed.`, error);
+  }
+}
+
+function startPolling(reason) {
+  if (pollTimer) return;
+  console.warn(`${LOG} falling back to polling every ${POLL_INTERVAL_MS / 1000}s — ${reason}`);
+  pollOnce();
+  pollTimer = window.setInterval(pollOnce, POLL_INTERVAL_MS);
+}
+
+function stopPolling() {
+  if (!pollTimer) return;
+  window.clearInterval(pollTimer);
+  pollTimer = null;
+  console.log(`${LOG} event stream healthy again — polling stopped.`);
+}
+
 function connectQuizEvents() {
   console.log(`${LOG} connecting to ${quizEventsUrl} (page origin ${window.location.origin})`);
   const source = new EventSource(quizEventsUrl);
 
+  // If the stream has not opened by now, something in the path is holding
+  // it; start asking instead rather than waiting on it indefinitely.
+  window.setTimeout(() => {
+    if (!streamHealthy) startPolling('the event stream did not open in time');
+  }, STREAM_GRACE_MS);
+
   source.onopen = () => {
+    streamHealthy = true;
     console.log(`${LOG} stream OPEN — server reachable, waiting for events.`);
+    stopPolling();
   };
 
   source.addEventListener('quiz_completed', (event) => {
     logEvent('quiz_completed');
     try {
-      const payload = JSON.parse(event.data);
-      console.log(`${LOG} quiz_completed: ${payload.playerName} scored ${payload.score}`);
-      if (mirrorMode === 'off') {
-        console.warn(`${LOG} …ignored: "Show on this screen" is set to Off.`);
-      }
-      interruptWithQuizResult(payload);
+      applyCompleted(JSON.parse(event.data));
     } catch (error) {
       console.warn(`${LOG} could not parse quiz_completed event.`, error);
     }
@@ -847,12 +939,7 @@ function connectQuizEvents() {
   source.addEventListener('queue_state', (event) => {
     logEvent('queue_state');
     try {
-      const data = JSON.parse(event.data);
-      const count = data.waitingCount ?? 0;
-      console.log(`${LOG} queue_state: playing=${data.active?.playerName ?? '-'} waiting=${count}`);
-      if (!mirrorQueue) return;
-      mirrorQueue.hidden = count < 1;
-      mirrorQueue.textContent = count === 1 ? '1 waiting' : `${count} waiting`;
+      applyQueueState(JSON.parse(event.data));
     } catch (error) {
       console.warn(`${LOG} could not parse queue_state event.`, error);
     }
@@ -861,28 +948,15 @@ function connectQuizEvents() {
   source.addEventListener('quiz_progress', (event) => {
     logEvent('quiz_progress');
     try {
-      const payload = JSON.parse(event.data);
-      console.log(
-        `${LOG} quiz_progress: ${payload.playerName} Q${(payload.questionIndex ?? 0) + 1}/${payload.totalQuestions}`
-      );
-      if (payload.type !== 'question') return;
-      if (mirrorMode !== 'full') {
-        console.warn(
-          `${LOG} …not shown: "Show on this screen" is set to "${mirrorMode}". Set it to Full quiz to mirror live questions.`
-        );
-        return;
-      }
-      if (isInterrupting) {
-        console.log(`${LOG} …held back: a result takeover is on screen right now.`);
-        return;
-      }
-      renderMirrorQuestion(payload);
+      applyProgress(JSON.parse(event.data));
     } catch (error) {
       console.warn(`${LOG} could not parse quiz_progress event.`, error);
     }
   });
 
   source.onerror = () => {
+    streamHealthy = false;
+    startPolling('the event stream errored');
     const state = READY_STATE_NAMES[source.readyState] ?? source.readyState;
     console.warn(
       `${LOG} stream error — readyState=${state}. ` +
