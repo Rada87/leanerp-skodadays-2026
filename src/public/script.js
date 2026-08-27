@@ -850,7 +850,10 @@ durationInput.addEventListener('input', () => {
   if (current !== 1) scheduleNextSlide();
 });
 
-mirrorModeSelect.addEventListener('change', () => {
+// Optional-chained like the video handlers below: a browser holding a cached
+// older index.html must still reach connectQuizEvents() at the end of this
+// file, or quiz mirroring dies silently on that screen.
+mirrorModeSelect?.addEventListener('change', () => {
   mirrorMode = mirrorModeSelect.value;
   saveMirrorMode(mirrorMode);
   if (mirrorMode === 'off' && mirrorActive) exitMirrorMode();
@@ -886,7 +889,7 @@ document.addEventListener('keydown', (event) => {
 });
 
 renderLeaderboard(leaderboardEntries);
-mirrorModeSelect.value = mirrorMode;
+if (mirrorModeSelect) mirrorModeSelect.value = mirrorMode;
 updatePlaybackControls();
 startCurrentSlidePlayback();
 connectQuizEvents();
