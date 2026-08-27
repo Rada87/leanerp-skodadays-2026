@@ -56,6 +56,9 @@ const interruptAccuracy = document.querySelector('#quiz-interrupt-accuracy');
 const interruptCorrect = document.querySelector('#quiz-interrupt-correct');
 const interruptRank = document.querySelector('#quiz-interrupt-rank');
 let isInterrupting = false;
+let activeCompletionKey = null;
+let heldProgress = null;
+let heldCompletion = null;
 
 const mirrorOverlay = document.querySelector('#quiz-mirror');
 const mirrorName = document.querySelector('#quiz-mirror-name');
@@ -404,9 +407,9 @@ function savePlaybackSettings() {
 }
 
 function updatePlaybackControls() {
-  autoplayInput.checked = playbackSettings.enabled;
-  durationInput.value = playbackSettings.duration;
-  durationOutput.textContent = `${playbackSettings.duration} s`;
+  if (autoplayInput) autoplayInput.checked = playbackSettings.enabled;
+  if (durationInput) durationInput.value = playbackSettings.duration;
+  if (durationOutput) durationOutput.textContent = `${playbackSettings.duration} s`;
 }
 
 function renderLeaderboard(entries) {
@@ -414,6 +417,7 @@ function renderLeaderboard(entries) {
   if (renderKey === leaderboardRenderKey) return;
   leaderboardRenderKey = renderKey;
   const list = document.querySelector('#leaderboard');
+  if (!list) return;
   list.classList.toggle('is-empty', !entries.length);
   if (!entries.length) {
     list.innerHTML = '<li class="leaderboard-empty">No quiz results yet.</li>';
@@ -507,6 +511,7 @@ function startCurrentSlidePlayback() {
 }
 
 function showSlide(nextIndex) {
+  if (slides.length === 0) return;
   stopCurrentSlidePlayback();
   stopLeaderboardRefresh();
   current = (nextIndex + slides.length) % slides.length;
@@ -521,7 +526,9 @@ function showSlide(nextIndex) {
 }
 
 function launchConfetti(canvas, totalCount = 80, totalSpread = 500) {
+  if (!canvas) return () => {};
   const c = canvas.getContext('2d');
+  if (!c) return () => {};
   const dpr = window.devicePixelRatio || 1;
   const w = window.innerWidth;
   const h = window.innerHeight;
@@ -598,14 +605,32 @@ function animateScoreCountUp(target, onDone) {
   const duration = 2500;
   const steps = 60;
   let step = 0;
-  const interval = window.setInterval(() => {
-    step++;
-    const t = step / steps;
-    const eased = 1 - Math.pow(1 - t, 3);
-    interruptScore.textContent = String(Math.min(Math.round(target * eased), target));
-    if (step >= steps) {
-      window.clearInterval(interval);
-      onDone();
+  let finished = false;
+  let interval;
+
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    window.clearInterval(interval);
+    onDone();
+  };
+
+  if (!interruptScore) {
+    console.warn(`${LOG} score element is missing; skipping the result count-up.`);
+    finish();
+    return;
+  }
+
+  interval = window.setInterval(() => {
+    try {
+      step++;
+      const t = step / steps;
+      const eased = 1 - Math.pow(1 - t, 3);
+      interruptScore.textContent = String(Math.min(Math.round(target * eased), target));
+      if (step >= steps) finish();
+    } catch (error) {
+      console.warn(`${LOG} score animation failed; finishing the result takeover safely.`, error);
+      finish();
     }
   }, duration / steps);
 }
@@ -622,6 +647,7 @@ function calculateMirrorPotential(remainingTime, totalTime) {
 }
 
 function setMirrorTimerFill(ratio) {
+  if (!mirrorTimerFill) return;
   mirrorTimerFill.style.width = `${Math.max(ratio, 0) * 100}%`;
   mirrorTimerFill.classList.remove('quiz-mirror__timer-fill--mid', 'quiz-mirror__timer-fill--low');
   if (ratio < 0.25) mirrorTimerFill.classList.add('quiz-mirror__timer-fill--low');
@@ -632,17 +658,23 @@ function tickMirrorCountdown() {
   const elapsed = (performance.now() - mirrorCountdownStart) / 1000;
   const remaining = Math.max(mirrorCountdownDuration - elapsed, 0);
   setMirrorTimerFill(remaining / mirrorCountdownDuration);
-  mirrorPotential.textContent = `+${calculateMirrorPotential(remaining, mirrorCountdownDuration)}`;
+  if (mirrorPotential) {
+    mirrorPotential.textContent = `+${calculateMirrorPotential(remaining, mirrorCountdownDuration)}`;
+  }
   if (remaining <= 0) stopMirrorCountdown();
 }
 
 function setQuizModeActive(active) {
-  if (active) startBgPattern();
-  else stopBgPattern();
+  if (active) window.startBgPattern?.();
+  else window.stopBgPattern?.();
 }
 
 function enterMirrorMode() {
   if (mirrorActive) return;
+  if (!mirrorOverlay) {
+    console.warn(`${LOG} mirror overlay is missing; live progress cannot be shown.`);
+    return;
+  }
   mirrorActive = true;
   window.clearTimeout(slideTimer);
   stopCurrentSlidePlayback();
@@ -663,7 +695,7 @@ function exitMirrorMode() {
     stopMirrorConfetti();
     stopMirrorConfetti = undefined;
   }
-  mirrorOverlay.hidden = true;
+  if (mirrorOverlay) mirrorOverlay.hidden = true;
   setQuizModeActive(false);
   startCurrentSlidePlayback();
 }
@@ -676,7 +708,16 @@ function scheduleMirrorStale() {
 function renderMirrorQuestion(payload) {
   if (mirrorMode !== 'full') return; // live question mirror only shown in full-quiz mode
   if (isInterrupting) return; // a completion takeover is already in progress
+  if (
+    !mirrorOverlay || !mirrorName || !mirrorProgress || !mirrorScore || !mirrorPotential ||
+    !mirrorCategory || !mirrorQuestion || !mirrorOptions || !mirrorFeedback ||
+    !mirrorFeedbackTitle || !mirrorFeedbackExplanation
+  ) {
+    console.warn(`${LOG} mirror markup is incomplete; live progress cannot be rendered safely.`);
+    return;
+  }
   enterMirrorMode();
+  if (!mirrorActive) return;
   scheduleMirrorStale();
 
   mirrorName.textContent = payload.playerName || 'Guest';
@@ -756,10 +797,54 @@ function renderMirrorQuestion(payload) {
   }
 }
 
-function interruptWithQuizResult(payload) {
+function completionKey(payload) {
+  return JSON.stringify([
+    payload.playerName,
+    payload.score,
+    payload.maxScore,
+    payload.correctAnswers,
+    payload.totalQuestions,
+    payload.rank,
+    payload.totalPlayers,
+  ]);
+}
+
+async function resumeAfterResultTakeover() {
+  const pendingCompletion = heldCompletion;
+  const pendingProgress = heldProgress;
+  heldCompletion = null;
+  heldProgress = null;
+
+  // Events can be lost while a proxy changes between SSE and polling. Ask
+  // for the canonical latest snapshot before deciding what belongs on screen.
+  await pollOnce();
+
+  // A newer live event may already have taken over while the request was in
+  // flight. Never overwrite it with an older held event.
+  if (isInterrupting) return;
+  if (pendingCompletion) {
+    interruptWithQuizResult(pendingCompletion.payload, pendingCompletion.sequence);
+    return;
+  }
+  if (mirrorActive) return;
+  if (pendingProgress) {
+    renderMirrorQuestion(pendingProgress.payload);
+    if (mirrorActive) return;
+  }
+
+  setQuizModeActive(false);
+  showSlide(2);
+}
+
+function interruptWithQuizResult(payload, sequence = null) {
   if (mirrorMode === 'off') return;
   if (isInterrupting) return;
+  if (!interruptOverlay) {
+    console.warn(`${LOG} result overlay is missing; skipping the result takeover.`);
+    return;
+  }
   isInterrupting = true;
+  activeCompletionKey = completionKey(payload);
 
   window.clearTimeout(slideTimer);
   window.clearTimeout(mirrorStaleTimer);
@@ -771,21 +856,23 @@ function interruptWithQuizResult(payload) {
     stopMirrorConfetti = undefined;
   }
   mirrorActive = false;
-  mirrorOverlay.hidden = true;
+  if (mirrorOverlay) mirrorOverlay.hidden = true;
   stopCurrentSlidePlayback();
   stopLeaderboardRefresh();
   closeSettingsPanel();
   setQuizModeActive(true);
 
-  interruptName.textContent = payload.playerName || 'Guest';
-  interruptScore.textContent = '0';
-  interruptMaxScore.textContent = String(payload.maxScore ?? '');
-  interruptAccuracy.textContent = `${payload.percentage ?? 0}%`;
-  interruptCorrect.textContent = `${payload.correctAnswers ?? 0}/${payload.totalQuestions ?? 0}`;
-  if (payload.rank && payload.totalPlayers) {
+  if (interruptName) interruptName.textContent = payload.playerName || 'Guest';
+  if (interruptScore) interruptScore.textContent = '0';
+  if (interruptMaxScore) interruptMaxScore.textContent = String(payload.maxScore ?? '');
+  if (interruptAccuracy) interruptAccuracy.textContent = `${payload.percentage ?? 0}%`;
+  if (interruptCorrect) {
+    interruptCorrect.textContent = `${payload.correctAnswers ?? 0}/${payload.totalQuestions ?? 0}`;
+  }
+  if (interruptRank && payload.rank && payload.totalPlayers) {
     interruptRank.hidden = false;
     interruptRank.textContent = `Rank #${payload.rank} of ${payload.totalPlayers}`;
-  } else {
+  } else if (interruptRank) {
     interruptRank.hidden = true;
   }
 
@@ -795,11 +882,16 @@ function interruptWithQuizResult(payload) {
   animateScoreCountUp(payload.score ?? 0, () => {
     const holdMs = Math.max(playbackSettings.duration, 5) * 1000;
     window.setTimeout(() => {
-      stopConfetti();
-      interruptOverlay.hidden = true;
-      isInterrupting = false;
-      setQuizModeActive(false);
-      showSlide(2);
+      try {
+        stopConfetti();
+      } catch (error) {
+        console.warn(`${LOG} could not stop result confetti cleanly.`, error);
+      } finally {
+        interruptOverlay.hidden = true;
+        isInterrupting = false;
+        activeCompletionKey = null;
+        void resumeAfterResultTakeover();
+      }
     }, holdMs);
   });
 }
@@ -824,12 +916,30 @@ function secondsSinceLastEvent() {
 
 // --- Handling, shared by the event stream and the polling fallback ---
 
-function applyCompleted(payload) {
+function rememberLatest(current, payload, sequence) {
+  if (!current) return { payload, sequence };
+  if (sequence === null || current.sequence === null || sequence > current.sequence) {
+    return { payload, sequence };
+  }
+  return current;
+}
+
+function applyCompleted(payload, sequence = null) {
   console.log(`${LOG} quiz_completed: ${payload.playerName} scored ${payload.score}`);
   if (mirrorMode === 'off') {
     console.warn(`${LOG} …ignored: "Show on this screen" is set to Off.`);
+    return;
   }
-  interruptWithQuizResult(payload);
+  if (isInterrupting) {
+    if (completionKey(payload) === activeCompletionKey) {
+      console.log(`${LOG} …duplicate of the result already on screen; ignored.`);
+      return;
+    }
+    heldCompletion = rememberLatest(heldCompletion, payload, sequence);
+    console.log(`${LOG} …retained until the current result takeover finishes.`);
+    return;
+  }
+  interruptWithQuizResult(payload, sequence);
 }
 
 function applyQueueState(data) {
@@ -840,7 +950,7 @@ function applyQueueState(data) {
   mirrorQueue.textContent = count === 1 ? '1 waiting' : `${count} waiting`;
 }
 
-function applyProgress(payload) {
+function applyProgress(payload, sequence = null) {
   console.log(
     `${LOG} quiz_progress: ${payload.playerName} Q${(payload.questionIndex ?? 0) + 1}/${payload.totalQuestions}`
   );
@@ -852,7 +962,8 @@ function applyProgress(payload) {
     return;
   }
   if (isInterrupting) {
-    console.log(`${LOG} …held back: a result takeover is on screen right now.`);
+    heldProgress = rememberLatest(heldProgress, payload, sequence);
+    console.log(`${LOG} …retained: a result takeover is on screen right now.`);
     return;
   }
   renderMirrorQuestion(payload);
@@ -870,6 +981,93 @@ const STREAM_GRACE_MS = 6000;
 let pollTimer = null;
 let streamHealthy = false;
 const seenSeq = { progress: 0, completed: 0, queue: 0 };
+let stateBaselineEstablished = false;
+let transportReady = false;
+let bufferedTransportEntries = [];
+
+function sequenceFrom(value) {
+  const sequence = Number(value);
+  return Number.isSafeInteger(sequence) && sequence > 0 ? sequence : null;
+}
+
+function processEntry(kind, payload, sequence = null) {
+  if (sequence !== null && sequence <= seenSeq[kind]) {
+    console.log(`${LOG} duplicate ${kind} seq=${sequence} ignored.`);
+    return;
+  }
+  if (sequence !== null) seenSeq[kind] = sequence;
+
+  // Progress older than the latest completion is the finishing player's last
+  // question, not an active mirror. The inverse is a delayed old completion
+  // that must not cover a newer player's question.
+  if (kind === 'progress' && sequence !== null && sequence <= seenSeq.completed) {
+    console.log(`${LOG} stale progress seq=${sequence} superseded by completion seq=${seenSeq.completed}.`);
+    return;
+  }
+  if (kind === 'completed' && sequence !== null && sequence <= seenSeq.progress) {
+    console.log(`${LOG} stale completion seq=${sequence} superseded by progress seq=${seenSeq.progress}.`);
+    return;
+  }
+
+  if (kind === 'queue') applyQueueState(payload);
+  else if (kind === 'completed') applyCompleted(payload, sequence);
+  else if (kind === 'progress') applyProgress(payload, sequence);
+}
+
+function receiveTransportEntry(kind, payload, sequence) {
+  if (!transportReady) {
+    bufferedTransportEntries.push({ kind, payload, sequence });
+    return;
+  }
+  processEntry(kind, payload, sequence);
+}
+
+function establishStateBaseline(state) {
+  const completedSequence = sequenceFrom(state.completed?.seq) ?? 0;
+  const progressSequence = sequenceFrom(state.progress?.seq) ?? 0;
+  const wasBufferedLive = (kind, sequence) => bufferedTransportEntries.some(
+    (entry) => entry.kind === kind && entry.sequence === sequence
+  );
+
+  if (state.queue && state.queue.seq > seenSeq.queue && !wasBufferedLive('queue', state.queue.seq)) {
+    seenSeq.queue = state.queue.seq;
+    applyQueueState(state.queue.data);
+  }
+  if (completedSequence > seenSeq.completed && !wasBufferedLive('completed', completedSequence)) {
+    seenSeq.completed = completedSequence;
+  }
+  if (progressSequence > seenSeq.progress && !wasBufferedLive('progress', progressSequence)) {
+    seenSeq.progress = progressSequence;
+    if (progressSequence > completedSequence) {
+      applyProgress(state.progress.data, progressSequence);
+    }
+  }
+
+  stateBaselineEstablished = true;
+  console.log(
+    `${LOG} state baseline ready: progress=${seenSeq.progress} completed=${seenSeq.completed} queue=${seenSeq.queue}.`
+  );
+}
+
+function applyStateSnapshot(state) {
+  const entries = [
+    state.progress && { kind: 'progress', ...state.progress },
+    state.completed && { kind: 'completed', ...state.completed },
+    state.queue && { kind: 'queue', ...state.queue },
+  ]
+    .filter(Boolean)
+    .filter((entry) => entry.seq > seenSeq[entry.kind])
+    .sort((a, b) => a.seq - b.seq);
+
+  entries.forEach((entry) => processEntry(entry.kind, entry.data, entry.seq));
+}
+
+function releaseBufferedTransport() {
+  transportReady = true;
+  const entries = bufferedTransportEntries;
+  bufferedTransportEntries = [];
+  entries.forEach((entry) => processEntry(entry.kind, entry.payload, entry.sequence));
+}
 
 async function pollOnce() {
   try {
@@ -879,19 +1077,8 @@ async function pollOnce() {
       return;
     }
     const state = await res.json();
-    if (state.queue && state.queue.seq > seenSeq.queue) {
-      seenSeq.queue = state.queue.seq;
-      applyQueueState(state.queue.data);
-    }
-    if (state.completed && state.completed.seq > seenSeq.completed) {
-      seenSeq.completed = state.completed.seq;
-      applyCompleted(state.completed.data);
-      return; // a takeover supersedes any question underneath it
-    }
-    if (state.progress && state.progress.seq > seenSeq.progress) {
-      seenSeq.progress = state.progress.seq;
-      applyProgress(state.progress.data);
-    }
+    if (!stateBaselineEstablished) establishStateBaseline(state);
+    else applyStateSnapshot(state);
   } catch (error) {
     console.warn(`${LOG} poll failed.`, error);
   }
@@ -913,7 +1100,21 @@ function stopPolling() {
 
 function connectQuizEvents() {
   console.log(`${LOG} connecting to ${quizEventsUrl} (page origin ${window.location.origin})`);
-  const source = new EventSource(quizEventsUrl);
+  let source;
+  try {
+    source = new EventSource(quizEventsUrl);
+  } catch (error) {
+    console.warn(`${LOG} could not create the event stream; using polling.`, error);
+    releaseBufferedTransport();
+    startPolling('the event stream could not be created');
+    return;
+  }
+
+  // Establish a quiet baseline on every page load. Historical completions are
+  // marked seen instead of replayed, while a newer active progress entry is
+  // rendered immediately. SSE events are buffered until this snapshot lands,
+  // closing the connect-vs-fetch race.
+  void pollOnce().finally(releaseBufferedTransport);
 
   // If the stream has not opened by now, something in the path is holding
   // it; start asking instead rather than waiting on it indefinitely.
@@ -930,7 +1131,7 @@ function connectQuizEvents() {
   source.addEventListener('quiz_completed', (event) => {
     logEvent('quiz_completed');
     try {
-      applyCompleted(JSON.parse(event.data));
+      receiveTransportEntry('completed', JSON.parse(event.data), sequenceFrom(event.lastEventId));
     } catch (error) {
       console.warn(`${LOG} could not parse quiz_completed event.`, error);
     }
@@ -939,7 +1140,7 @@ function connectQuizEvents() {
   source.addEventListener('queue_state', (event) => {
     logEvent('queue_state');
     try {
-      applyQueueState(JSON.parse(event.data));
+      receiveTransportEntry('queue', JSON.parse(event.data), sequenceFrom(event.lastEventId));
     } catch (error) {
       console.warn(`${LOG} could not parse queue_state event.`, error);
     }
@@ -948,7 +1149,7 @@ function connectQuizEvents() {
   source.addEventListener('quiz_progress', (event) => {
     logEvent('quiz_progress');
     try {
-      applyProgress(JSON.parse(event.data));
+      receiveTransportEntry('progress', JSON.parse(event.data), sequenceFrom(event.lastEventId));
     } catch (error) {
       console.warn(`${LOG} could not parse quiz_progress event.`, error);
     }
@@ -981,34 +1182,35 @@ function connectQuizEvents() {
 }
 
 function closeSettingsPanel() {
-  settingsToggle.setAttribute('aria-expanded', 'false');
-  settingsPanel.hidden = true;
+  settingsToggle?.setAttribute('aria-expanded', 'false');
+  if (settingsPanel) settingsPanel.hidden = true;
 }
 
-settingsToggle.addEventListener('click', () => {
+settingsToggle?.addEventListener('click', () => {
   const expanded = settingsToggle.getAttribute('aria-expanded') === 'true';
   if (expanded) {
     closeSettingsPanel();
   } else {
     settingsToggle.setAttribute('aria-expanded', 'true');
-    settingsPanel.hidden = false;
+    if (settingsPanel) settingsPanel.hidden = false;
   }
 });
 
 document.addEventListener('click', (event) => {
+  if (!settingsPanel || !settingsToggle) return;
   if (settingsPanel.hidden) return;
   if (event.target === settingsToggle || settingsPanel.contains(event.target) || settingsToggle.contains(event.target)) return;
   closeSettingsPanel();
 });
 
-autoplayInput.addEventListener('change', () => {
+autoplayInput?.addEventListener('change', () => {
   playbackSettings.enabled = autoplayInput.checked;
   savePlaybackSettings();
   stopCurrentSlidePlayback();
   startCurrentSlidePlayback();
 });
 
-durationInput.addEventListener('input', () => {
+durationInput?.addEventListener('input', () => {
   playbackSettings.duration = Number(durationInput.value);
   updatePlaybackControls();
   savePlaybackSettings();
