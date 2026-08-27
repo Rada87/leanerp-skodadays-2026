@@ -30,6 +30,16 @@ function saveMirrorMode(mode) {
 
 let mirrorMode = loadMirrorMode();
 
+const mirrorBadge = document.querySelector('#mirror-badge');
+const mirrorModeLabels = { results: 'Mirror: results only', off: 'Mirror: off' };
+
+function updateMirrorBadge() {
+  if (!mirrorBadge) return;
+  const label = mirrorModeLabels[mirrorMode];
+  mirrorBadge.hidden = !label;
+  if (label) mirrorBadge.textContent = label;
+}
+
 const leaderboardApiUrl = '/apps/leanerp-sd-quiz/api/leaderboard';
 const leaderboardRefreshMs = 3000;
 let leaderboardEntries = [];
@@ -867,6 +877,7 @@ durationInput.addEventListener('input', () => {
 mirrorModeSelect?.addEventListener('change', () => {
   mirrorMode = mirrorModeSelect.value;
   saveMirrorMode(mirrorMode);
+  updateMirrorBadge();
   if (mirrorMode === 'off' && mirrorActive) exitMirrorMode();
 });
 
@@ -901,6 +912,7 @@ document.addEventListener('keydown', (event) => {
 
 renderLeaderboard(leaderboardEntries);
 if (mirrorModeSelect) mirrorModeSelect.value = mirrorMode;
+updateMirrorBadge();
 updatePlaybackControls();
 startCurrentSlidePlayback();
 connectQuizEvents();

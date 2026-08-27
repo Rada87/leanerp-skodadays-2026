@@ -64,7 +64,12 @@ body:hover .controls, body:focus-within .controls { opacity: 1; }
 .dot.is-active { background: var(--green); }
 .arrow:focus-visible, .dot:focus-visible { outline: 2px solid var(--white); outline-offset: 3px; }
 
-.playback-settings { position: fixed; right: 1.4rem; top: 1.25rem; z-index: 5; }
+.playback-settings { align-items: center; display: flex; gap: .5rem; position: fixed; right: 1.4rem; top: 1.25rem; z-index: 5; }
+
+/* Shown only while quiz mirroring is deliberately suppressed, so a silent
+   presentation reads as a setting rather than a fault. */
+.mirror-badge { background: rgba(240, 180, 90, .12); border: 1px solid rgba(240, 180, 90, .35); border-radius: 999px; color: rgba(240, 190, 110, .95); font-size: .68rem; font-weight: 700; letter-spacing: .04em; padding: .22rem .6rem; white-space: nowrap; }
+.mirror-badge[hidden] { display: none; }
 .settings-toggle { background: rgba(0, 0, 0, .3); border: 1px solid rgba(103, 245, 157, .25); border-radius: 50%; color: rgba(248, 248, 248, .7); cursor: pointer; font-size: .95rem; height: 2rem; opacity: .45; width: 2rem; }
 .settings-toggle:hover, .settings-toggle:focus-visible, .settings-toggle[aria-expanded="true"] { border-color: var(--green); color: var(--green); opacity: 1; outline: none; }
 .settings-panel { background: rgba(13, 16, 14, .97); border: 1px solid rgba(103, 245, 157, .5); box-shadow: 0 .8rem 2rem rgba(0, 0, 0, .4); min-width: 16rem; padding: 1rem; position: absolute; right: 0; top: 2.8rem; }
