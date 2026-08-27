@@ -12,6 +12,24 @@ let current = 0;
 let slideTimer;
 let playbackSettings = loadPlaybackSettings();
 
+// Local to this presentation screen only — players on the quiz tablets have
+// no way to see or change it, so it can't be used to hide the mirror from
+// whoever is watching the main screen.
+const mirrorModeSelect = document.querySelector('#quiz-mirror-mode');
+const mirrorModeStorageKey = 'leanerp-skoda-mirror-mode';
+const defaultMirrorMode = 'full';
+
+function loadMirrorMode() {
+  const stored = localStorage.getItem(mirrorModeStorageKey);
+  return stored === 'full' || stored === 'results' || stored === 'off' ? stored : defaultMirrorMode;
+}
+
+function saveMirrorMode(mode) {
+  localStorage.setItem(mirrorModeStorageKey, mode);
+}
+
+let mirrorMode = loadMirrorMode();
+
 const leaderboardApiUrl = '/apps/leanerp-sd-quiz/api/leaderboard';
 const leaderboardRefreshMs = 3000;
 let leaderboardEntries = [];
@@ -645,6 +663,7 @@ function scheduleMirrorStale() {
 }
 
 function renderMirrorQuestion(payload) {
+  if (mirrorMode !== 'full') return; // live question mirror only shown in full-quiz mode
   if (isInterrupting) return; // a completion takeover is already in progress
   enterMirrorMode();
   scheduleMirrorStale();
@@ -727,6 +746,7 @@ function renderMirrorQuestion(payload) {
 }
 
 function interruptWithQuizResult(payload) {
+  if (mirrorMode === 'off') return;
   if (isInterrupting) return;
   isInterrupting = true;
 
@@ -830,6 +850,12 @@ durationInput.addEventListener('input', () => {
   if (current !== 1) scheduleNextSlide();
 });
 
+mirrorModeSelect.addEventListener('change', () => {
+  mirrorMode = mirrorModeSelect.value;
+  saveMirrorMode(mirrorMode);
+  if (mirrorMode === 'off' && mirrorActive) exitMirrorMode();
+});
+
 video?.addEventListener('ended', () => {
   if (playbackSettings.enabled && current === 1) showSlide(current + 1);
 });
@@ -860,6 +886,7 @@ document.addEventListener('keydown', (event) => {
 });
 
 renderLeaderboard(leaderboardEntries);
+mirrorModeSelect.value = mirrorMode;
 updatePlaybackControls();
 startCurrentSlidePlayback();
 connectQuizEvents();

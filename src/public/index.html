@@ -130,6 +130,17 @@
     <div class="playback-settings">
       <button class="settings-toggle" type="button" aria-label="Presentation playback settings" aria-expanded="false" aria-controls="playback-panel" title="Presentation playback settings">⚙</button>
       <section class="settings-panel" id="playback-panel" aria-label="Presentation playback settings" hidden>
+        <div class="settings-panel__title">Quiz mirror</div>
+        <label class="settings-row settings-row--select" for="quiz-mirror-mode">
+          <span>Show on this screen</span>
+          <select id="quiz-mirror-mode">
+            <option value="full">Full quiz</option>
+            <option value="results">Results only</option>
+            <option value="off">Off</option>
+          </select>
+        </label>
+        <p class="settings-hint">Controls what this presentation shows from tablets; players cannot change it.</p>
+
         <div class="settings-panel__title">Playback</div>
         <label class="settings-row settings-row--toggle">
           <span>Auto-play</span>
