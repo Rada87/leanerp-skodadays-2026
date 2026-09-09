@@ -1288,6 +1288,28 @@ document.addEventListener('click', (event) => {
 });
 
 document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    // A visitor can abandon a quiz mid-question, leaving this screen stuck
+    // on their frozen progress until the 90s stale timeout. Esc is a manual
+    // kill switch: drop whatever quiz overlay is showing and go back to the
+    // slideshow right away. No new events will resurrect it — an abandoned
+    // session stops producing them, so only a genuinely new player can
+    // trigger the mirror again.
+    if (isInterrupting) {
+      console.log(`${LOG} Esc pressed; force-closing the result takeover.`);
+      closeResultTakeover();
+      heldCompletion = null;
+      heldProgress = null;
+      setQuizModeActive(false);
+      showSlide(2);
+    } else if (mirrorActive) {
+      console.log(`${LOG} Esc pressed; force-exiting the stuck quiz mirror.`);
+      heldCompletion = null;
+      heldProgress = null;
+      exitMirrorMode();
+    }
+    return;
+  }
   if (event.key === 'ArrowRight' || event.key === 'PageDown') showSlide(current + 1);
   if (event.key === 'ArrowLeft' || event.key === 'PageUp') showSlide(current - 1);
   if (event.key === ' ') {
