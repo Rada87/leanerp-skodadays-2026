@@ -1082,8 +1082,16 @@ function establishStateBaseline(state) {
   }
   if (progressSequence > seenSeq.progress && !wasBufferedLive('progress', progressSequence)) {
     seenSeq.progress = progressSequence;
-    if (progressSequence > completedSequence) {
+    // Only replay a live question on load if someone is actually playing.
+    // An abandoned run leaves its last progress entry behind with no active
+    // player in the queue; replaying it would drop a phantom quiz over the
+    // slideshow until the 90s stale timeout. When the queue gate is off
+    // entirely (no queue snapshot) fall back to the sequence check alone.
+    const hasActivePlayer = !state.queue || Boolean(state.queue.data?.active);
+    if (progressSequence > completedSequence && hasActivePlayer) {
       applyProgress(state.progress.data, progressSequence);
+    } else if (progressSequence > completedSequence) {
+      console.log(`${LOG} baseline progress seq=${progressSequence} skipped — no active player in the queue.`);
     }
   }
 
