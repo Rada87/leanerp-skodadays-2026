@@ -543,7 +543,7 @@ function launchConfetti(canvas, totalCount = 80, totalSpread = 500) {
   canvas.style.height = `${h}px`;
   c.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  const colors = ['#67f59d', '#2f6347', '#ffd700', '#ff6b9d', '#4dc9f6', '#ffffff', '#df6340'];
+  const colors = ['#78faae', '#2f6347', '#ffd700', '#ff6b9d', '#4dc9f6', '#ffffff', '#df6340'];
   const cx = w / 2;
   const cy = h * 0.35;
 
