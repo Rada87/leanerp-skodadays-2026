@@ -41,7 +41,7 @@ button { font: inherit; }
 .hero-benefits li { align-items: center; display: flex; gap: clamp(1rem, 1.8vw, 2.2rem); }
 .hero-benefits img { height: clamp(2.5rem, 4vw, 5rem); object-fit: contain; width: clamp(3.7rem, 5vw, 6rem); }
 .hero-benefits p { font-size: clamp(.95rem, 1.55vw, 2rem); letter-spacing: .02em; line-height: 1.03; margin: 0; }
-.hero-brand { display: block; margin-top: clamp(1rem, 1.8vw, 3rem); max-width: min(28vw, 24rem); width: clamp(12rem, 19vw, 24rem); }
+.hero-brand { display: block; margin-top: clamp(1rem, 4.8vw, 3rem); max-width: min(28vw, 24rem); width: clamp(12rem, 19vw, 24rem); }
 
 .controls {
   align-items: center;
