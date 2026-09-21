@@ -210,7 +210,7 @@ body:hover .controls, body:focus-within .controls { opacity: 1; }
   .hero-benefits { gap: .7rem; margin-top: 1.1rem; }
   .hero-benefits img { height: 2.2rem; width: 3rem; }
   .hero-benefits p { font-size: .85rem; }
-  .hero-brand { margin-top: 1.2rem; }
+  .hero-brand { margin-top: clamp(1rem, 4.8vw, 3rem); }
   .slide--video { padding: 1.5rem; }
   .leaderboard-card { border-radius: 1.4rem; padding: 1.35rem; }
   .leaderboard-item { column-gap: .75rem; }
