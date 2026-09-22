@@ -58,6 +58,7 @@ const interruptRank = document.querySelector('#quiz-interrupt-rank');
 let isInterrupting = false;
 let activeCompletionKey = null;
 let activeCompletionOwner = null;
+let mirrorOwner = null; // playerOwner() of the run currently mirrored live
 let heldProgress = null;
 let heldCompletion = null;
 let cancelScoreCountUp;
@@ -699,6 +700,7 @@ function enterMirrorMode() {
 function exitMirrorMode() {
   if (!mirrorActive) return;
   mirrorActive = false;
+  mirrorOwner = null;
   window.clearTimeout(mirrorStaleTimer);
   stopMirrorCountdown();
   mirrorCountdownQuestionIndex = null;
@@ -719,6 +721,7 @@ function scheduleMirrorStale() {
 
 function renderMirrorQuestion(payload) {
   if (mirrorMode !== 'full') return; // live question mirror only shown in full-quiz mode
+  mirrorOwner = playerOwner(payload);
   if (isInterrupting) return; // a completion takeover is already in progress
   if (
     !mirrorOverlay || !mirrorName || !mirrorProgress || !mirrorScore || !mirrorPotential ||
@@ -972,6 +975,53 @@ function applyCompleted(payload, sequence = null) {
   interruptWithQuizResult(payload);
 }
 
+/**
+ * Drops whatever quiz overlay is on screen and returns to the slideshow.
+ * Shared by the Esc kill switch and by the stand console removing a player:
+ * in both cases the run on screen is no longer the stand's game.
+ */
+function forceExitMirror(reason) {
+  if (isInterrupting) {
+    console.log(`${LOG} ${reason}; force-closing the result takeover.`);
+    closeResultTakeover();
+    heldCompletion = null;
+    heldProgress = null;
+    setQuizModeActive(false);
+    showSlide(2);
+  } else if (mirrorActive) {
+    console.log(`${LOG} ${reason}; force-exiting the quiz mirror.`);
+    heldCompletion = null;
+    heldProgress = null;
+    exitMirrorMode();
+  } else {
+    heldCompletion = null;
+    heldProgress = null;
+  }
+}
+
+/**
+ * The stand removed a player (kick or stop). Only clear the screen when it is
+ * that player's run showing — an unrelated removal must not interrupt whoever
+ * is currently on the big screen.
+ */
+function applyMirrorStop(data) {
+  const clientId = data?.clientId;
+  if (!clientId) return;
+  const owner = `client:${clientId}`;
+  console.log(`${LOG} mirror_stop for ${owner}`);
+  const showingThem =
+    (isInterrupting && activeCompletionOwner === owner) ||
+    (mirrorActive && (mirrorOwner === owner || mirrorOwner === null));
+  if (!showingThem) {
+    console.log(`${LOG} …not the run on screen; nothing to clear.`);
+    // Anything held back for later belongs to a removed run too.
+    if (heldProgress && playerOwner(heldProgress.payload) === owner) heldProgress = null;
+    if (heldCompletion && playerOwner(heldCompletion.payload) === owner) heldCompletion = null;
+    return;
+  }
+  forceExitMirror('player removed at the stand');
+}
+
 function applyQueueState(data) {
   const count = data.waitingCount ?? 0;
   console.log(`${LOG} queue_state: playing=${data.active?.playerName ?? '-'} waiting=${count}`);
@@ -1198,6 +1248,25 @@ function connectQuizEvents() {
     }
   });
 
+  // Not routed through receiveTransportEntry: this is a one-off command, not
+  // a state snapshot, and the polling fallback has no equivalent — a screen on
+  // polling falls back to the stale timeout instead.
+  source.addEventListener('mirror_stop', (event) => {
+    try {
+      applyMirrorStop(JSON.parse(event.data));
+    } catch (error) {
+      console.warn(`${LOG} could not parse mirror_stop event.`, error);
+    }
+  });
+
+  source.addEventListener('player_stopped', (event) => {
+    try {
+      applyMirrorStop(JSON.parse(event.data));
+    } catch (error) {
+      console.warn(`${LOG} could not parse player_stopped event.`, error);
+    }
+  });
+
   source.addEventListener('quiz_progress', (event) => {
     logEvent('quiz_progress');
     try {
@@ -1303,19 +1372,7 @@ document.addEventListener('keydown', (event) => {
     // slideshow right away. No new events will resurrect it — an abandoned
     // session stops producing them, so only a genuinely new player can
     // trigger the mirror again.
-    if (isInterrupting) {
-      console.log(`${LOG} Esc pressed; force-closing the result takeover.`);
-      closeResultTakeover();
-      heldCompletion = null;
-      heldProgress = null;
-      setQuizModeActive(false);
-      showSlide(2);
-    } else if (mirrorActive) {
-      console.log(`${LOG} Esc pressed; force-exiting the stuck quiz mirror.`);
-      heldCompletion = null;
-      heldProgress = null;
-      exitMirrorMode();
-    }
+    forceExitMirror('Esc pressed');
     return;
   }
   if (event.key === 'ArrowRight' || event.key === 'PageDown') showSlide(current + 1);
